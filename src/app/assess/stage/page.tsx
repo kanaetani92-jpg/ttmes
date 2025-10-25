@@ -126,20 +126,23 @@ export default function StagePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn" onClick={handleRestart}>
-            はじめから回答する
-          </button>
-          <button className="btn" onClick={handleHistory}>
-            過去の回答とフィードバックを見る
-          </button>
-          <button className="btn" onClick={handleLogout} disabled={loggingOut}>
-            {loggingOut ? 'ログアウト中…' : 'ログアウト'}
-          </button>
+      <header className="space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">ステージ分類</div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn" onClick={handleRestart}>
+              はじめから回答する
+            </button>
+            <button className="btn" onClick={handleHistory}>
+              過去の回答とフィードバックを見る
+            </button>
+            <button className="btn" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? 'ログアウト中…' : 'ログアウト'}
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
       {actionError && <p className="text-sm text-red-300">{actionError}</p>}
 
