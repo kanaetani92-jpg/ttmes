@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -49,6 +49,49 @@ type StoredData = { stage?: Stage } & Record<string, unknown>;
 const isStage = (value: unknown): value is Stage =>
   value === 'PC' || value === 'C' || value === 'PR' || value === 'A' || value === 'M';
 
+const loadStoredStage = (): Stage | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as StoredData;
+    return isStage(parsed.stage) ? parsed.stage : null;
+  } catch (error) {
+    console.error('Failed to restore stage from localStorage', error);
+    return null;
+  }
+};
+
+const persistStage = (nextStage: Stage) => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data: StoredData = raw ? (JSON.parse(raw) as StoredData) : {};
+    data.stage = nextStage;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to persist stage', error);
+  }
+};
+
+const clearStoredStage = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+
+    const data: StoredData = JSON.parse(raw) as StoredData;
+    if ('stage' in data) {
+      delete data.stage;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+  } catch (error) {
+    console.error('Failed to clear stage from localStorage', error);
+  }
+};
+
 export default function StagePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,49 +101,39 @@ export default function StagePage() {
 
   // 既存保存値を読み込み（任意）
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoredData;
-        if (isStage(parsed.stage)) {
-          setStage(parsed.stage);
-          setAssessmentStage(parsed.stage);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to restore stage from localStorage', error);
-    }
-  }, [setAssessmentStage]);
-
-  function persistStage(nextStage: Stage) {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const data: StoredData = raw ? (JSON.parse(raw) as StoredData) : {};
-      data.stage = nextStage;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to persist stage', error);
-    }
-  }
-
-  function handleSelect(nextStage: Stage) {
-    setStage(nextStage);
-    setAssessmentStage(nextStage);
-    setStageError(null);
-    persistStage(nextStage);
-  }
-
-  function handleNextClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (!stage) {
-      event.preventDefault();
-      setStageError('ステージを選択してください。');
+    const storedStage = loadStoredStage();
+    if (!storedStage) {
       return;
     }
 
-    setStageError(null);
-    persistStage(stage);
-    setAssessmentStage(stage);
-  }
+    setStage(storedStage);
+    setAssessmentStage(storedStage);
+  }, [setAssessmentStage]);
+
+  const handleSelect = useCallback(
+    (nextStage: Stage) => {
+      setStage(nextStage);
+      setAssessmentStage(nextStage);
+      setStageError(null);
+      persistStage(nextStage);
+    },
+    [setAssessmentStage],
+  );
+
+  const handleNextClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!stage) {
+        event.preventDefault();
+        setStageError('ステージを選択してください。');
+        return;
+      }
+
+      setStageError(null);
+      persistStage(stage);
+      setAssessmentStage(stage);
+    },
+    [setAssessmentStage, stage],
+  );
 
   const restartToken = searchParams.get('restart');
   const searchParamsString = searchParams.toString();
@@ -125,6 +158,7 @@ export default function StagePage() {
     if (!restartToken) return;
     setStage(null);
     setStageError(null);
+    clearStoredStage();
     router.replace(restartPath);
   }, [restartPath, restartToken, router]);
 
