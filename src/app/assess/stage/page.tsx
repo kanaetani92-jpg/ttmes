@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
@@ -92,21 +92,34 @@ export default function StagePage() {
     setStageError(null);
     persistStage(stage);
     setAssessmentStage(stage);
-    router.push('/assess/risci');
+    router.push(nextPath);
   }
 
   const restartToken = searchParams.get('restart');
   const searchParamsString = searchParams.toString();
 
+  const sanitizedQuery = useMemo(() => {
+    const params = new URLSearchParams(searchParamsString);
+    params.delete('restart');
+    return params.toString();
+  }, [searchParamsString]);
+
+  const nextPath = useMemo(
+    () => `/assess/risci${sanitizedQuery ? `?${sanitizedQuery}` : ''}`,
+    [sanitizedQuery],
+  );
+
+  const restartPath = useMemo(
+    () => `/assess/stage${sanitizedQuery ? `?${sanitizedQuery}` : ''}`,
+    [sanitizedQuery],
+  );
+
   useEffect(() => {
     if (!restartToken) return;
     setStage(null);
     setStageError(null);
-    const params = new URLSearchParams(searchParamsString);
-    params.delete('restart');
-    const query = params.toString();
-    router.replace(`/assess/stage${query ? `?${query}` : ''}`);
-  }, [restartToken, router, searchParamsString]);
+    router.replace(restartPath);
+  }, [restartPath, restartToken, router]);
 
   return (
     <div className="space-y-4">
