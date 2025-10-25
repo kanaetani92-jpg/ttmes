@@ -1,9 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getIdToken } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { RestartAssessmentButton } from '@/components/AssessmentActions';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
 import { STAGE_LABELS, Stage } from '@/lib/assessment';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
@@ -23,60 +24,95 @@ type PrescriptionResponse = {
 };
 
 export default function FeedbackPage() {
-  const { data, setStage } = useAssessment();
+  const searchParams = useSearchParams();
+  const reviewMode = searchParams.get('review') === '1';
+  const { data, setStage, hasHydrated } = useAssessment();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PrescriptionResponse | null>(null);
 
-  async function submit() {
-    setError(null);
-    setLoading(true);
+  const generateFeedback = useCallback(async () => {
+    const auth = getFirebaseAuth();
+    const db = getFirebaseDb();
+    const user = auth.currentUser;
+    if (!user) throw new Error('ログインが必要です');
+    const token = await getIdToken(user, true);
+    const payload = buildAssessmentRequest(data);
+    const res = await fetch('/api/prescription', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const json = (await res.json()) as PrescriptionResponse;
+
+    const ref = doc(db, 'users', user.uid, 'assessments', json.id);
+
+    let finalResult: PrescriptionResponse = json;
+    let persistenceError: string | undefined;
     try {
-      const auth = getFirebaseAuth();
-      const db = getFirebaseDb();
-      const user = auth.currentUser;
-      if (!user) throw new Error('ログインが必要です');
-      const token = await getIdToken(user, true);
-      const payload = buildAssessmentRequest(data);
-      const res = await fetch('/api/prescription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
+      const prescriptionRef = doc(db, 'users', user.uid, 'prescriptions', json.id);
+      await setDoc(
+        prescriptionRef,
+        {
+          createdAt: serverTimestamp(),
+          scores: json.scores ?? payload.scores,
+          messages: json.messages ?? [],
         },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const json = (await res.json()) as PrescriptionResponse;
-
-      const ref = doc(db, 'users', user.uid, 'assessments', json.id);
-
-      let finalResult: PrescriptionResponse = json;
-      try {
-        await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
-        const prescriptionRef = doc(db, 'users', user.uid, 'prescriptions', json.id);
-        await setDoc(
-          prescriptionRef,
-          {
-            createdAt: serverTimestamp(),
-            scores: json.scores ?? payload.scores,
-            messages: json.messages ?? [],
-          },
-          { merge: true },
-        );
-        finalResult = { ...json, persisted: true };
-      } catch (error) {
-        console.error('Failed to persist assessment on client', error);
-        setError('フィードバックの保存に失敗しました。もう一度お試しください。');
-        finalResult = { ...json, persisted: json.persisted ?? false };
-      }
-
-      setResult(finalResult);
-    } catch (e: any) {
-      setError(e.message ?? 'エラーが発生しました');
-    } finally {
-      setLoading(false);
+        { merge: true },
+      );
+      finalResult = { ...json, persisted: true };
+    } catch (error) {
+      console.error('Failed to persist assessment on client', error);
+      persistenceError = 'フィードバックの保存に失敗しました。もう一度お試しください。';
+      finalResult = { ...json, persisted: json.persisted ?? false };
     }
+
+    return { result: finalResult, persistenceError };
+  }, [data]);
+
+  useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { result: nextResult, persistenceError } = await generateFeedback();
+        if (cancelled) {
+          return;
+        }
+        setResult(nextResult);
+        setError(persistenceError ?? null);
+      } catch (e: any) {
+        if (cancelled) {
+          return;
+        }
+        setError(e?.message ?? 'エラーが発生しました');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [generateFeedback, hasHydrated]);
+
+  if (!hasHydrated) {
+    return <div className="space-y-6" />;
   }
 
   return (
@@ -84,16 +120,19 @@ export default function FeedbackPage() {
       <header className="space-y-1">
         <h2 className="text-xl font-bold">フィードバック生成</h2>
         <p className="text-sm text-gray-400">
-          集計結果をもとに処方箋を生成します。変容ステージを選択し「フィードバックを生成」を押してください。
+          集計結果をもとに処方箋を自動生成します。変容ステージを確認してください。
         </p>
       </header>
       <section className="card space-y-4 p-6">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="text-sm font-semibold">変容ステージ</label>
           <select
-            className="input"
+            className={`input disabled:cursor-not-allowed disabled:opacity-60${
+              reviewMode ? ' cursor-not-allowed opacity-60' : ''
+            }`}
             value={data.stage}
             onChange={(event) => setStage(event.target.value as Stage)}
+            disabled={reviewMode}
           >
             {Object.entries(STAGE_LABELS).map(([key, label]) => (
               <option key={key} value={key}>
@@ -105,15 +144,15 @@ export default function FeedbackPage() {
         <p className="text-xs leading-relaxed text-gray-400">
           各質問紙の得点は自動的に集計され、サーバーで安全に処理されます。画面上には表示されません。
         </p>
+        {reviewMode ? (
+          <p className="text-xs leading-relaxed text-gray-400">
+            回答内容は閲覧のみ可能です。値を変更することはできません。
+          </p>
+        ) : null}
       </section>
-      <div className="flex flex-wrap items-center gap-3">
-        <button className="btn" onClick={submit} disabled={loading}>
-          {loading ? '生成中…' : 'フィードバックを生成'}
-        </button>
-        <Link className="btn" href="/assess/ppsm">
-          回答を見直す
-        </Link>
-      </div>
+      {loading ? (
+        <p className="text-sm text-gray-400">フィードバックを生成しています…</p>
+      ) : null}
       {error && <p className="text-sm text-red-300">{error}</p>}
       {result && (
         <section className="space-y-4">
@@ -156,7 +195,6 @@ export default function FeedbackPage() {
             </div>
             {result.messages.map((message) => (
               <article key={message.id} className="space-y-1 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500">{message.id}</p>
                 <h4 className="font-semibold">{message.title}</h4>
                 <p className="whitespace-pre-line text-sm leading-relaxed text-gray-100">{message.body}</p>
               </article>
@@ -164,6 +202,9 @@ export default function FeedbackPage() {
           </div>
         </section>
       )}
+      <div className="flex justify-end pt-4">
+        <RestartAssessmentButton />
+      </div>
     </div>
   );
 }

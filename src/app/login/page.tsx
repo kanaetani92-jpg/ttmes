@@ -66,14 +66,24 @@ export default function LoginPage() {
       {error && <p className="text-red-300 mt-3">{error}</p>}
       {info && <p className="text-green-300 mt-3">{info}</p>}
       <hr className="my-4"/>
-      <button className="link" onClick={()=>setMode(mode==='login'?'register':'login')}>
-        {mode==='login'?'アカウントを作成':'既にアカウントをお持ちの方はこちら'}
-      </button>
-      {mode === 'login' && (
-        <button type="button" className="link mt-2" onClick={handleResetPassword}>
-          パスワードをお忘れの方はこちら
+      <div className="mt-4 space-y-2">
+        <button
+          type="button"
+          className="btn-secondary w-full"
+          onClick={()=>setMode(mode==='login'?'register':'login')}
+        >
+          {mode==='login'?'アカウントを作成':'既にアカウントをお持ちの方はこちら'}
         </button>
-      )}
+        {mode === 'login' && (
+          <button
+            type="button"
+            className="btn-ghost w-full"
+            onClick={handleResetPassword}
+          >
+            パスワードをお忘れの方はこちら
+          </button>
+        )}
+      </div>
     </div>
   );
 }

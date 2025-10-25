@@ -27,6 +27,7 @@ type AssessmentContext = {
   setLikert: (path: string, index: number, val: Likert5) => void;
   setStage: (stage: Stage) => void;
   reset: () => void;
+  hasHydrated: boolean;
 };
 
 const AssessmentCtx = createContext<AssessmentContext>({
@@ -34,6 +35,7 @@ const AssessmentCtx = createContext<AssessmentContext>({
   setLikert: () => {},
   setStage: () => {},
   reset: () => {},
+  hasHydrated: false,
 });
 
 export function AssessmentProvider({ children }: { children: React.ReactNode }) {
@@ -85,7 +87,8 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       localStorage.removeItem(STORAGE_KEY);
       setData(createDefaultAssessment());
     },
-  }), [data]);
+    hasHydrated,
+  }), [data, hasHydrated]);
 
   return <AssessmentCtx.Provider value={api}>{children}</AssessmentCtx.Provider>;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
@@ -13,6 +14,9 @@ const QUESTIONS = [
 ];
 
 export default function PssmPage() {
+  const searchParams = useSearchParams();
+  const reviewMode = searchParams.get('review') === '1';
+  const reviewQuery = reviewMode ? '?review=1' : '';
   const { data, setLikert } = useAssessment();
   return (
     <div className="space-y-6">
@@ -24,15 +28,19 @@ export default function PssmPage() {
         {QUESTIONS.map((question, index) => (
           <div key={question} className="grid items-center gap-3 md:grid-cols-2">
             <p className="text-sm leading-relaxed">{question}</p>
-            <Likert5 value={data.pssm[index]} onChange={(v) => setLikert('pssm', index, v)} />
+            <Likert5
+              value={data.pssm[index]}
+              onChange={(v) => setLikert('pssm', index, v)}
+              disabled={reviewMode}
+            />
           </div>
         ))}
       </section>
       <div className="flex gap-2">
-        <Link className="btn" href="/assess/pdsm">
+        <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
           次へ（PDSM）
         </Link>
-        <Link className="btn" href="/assess/sma">
+        <Link className="btn" href={`/assess/sma${reviewQuery}`}>
           戻る
         </Link>
       </div>

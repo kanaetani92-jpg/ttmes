@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
@@ -20,6 +21,9 @@ const BEH = [
 ];
 
 export default function PpsmPage() {
+  const searchParams = useSearchParams();
+  const reviewMode = searchParams.get('review') === '1';
+  const reviewQuery = reviewMode ? '?review=1' : '';
   const { data, setLikert } = useAssessment();
   return (
     <div className="space-y-6">
@@ -33,7 +37,11 @@ export default function PpsmPage() {
           {EXP.map((question, index) => (
             <div key={question} className="grid items-center gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
-              <Likert5 value={data.ppsm.experiential[index]} onChange={(v) => setLikert('ppsm.experiential', index, v)} />
+              <Likert5
+                value={data.ppsm.experiential[index]}
+                onChange={(v) => setLikert('ppsm.experiential', index, v)}
+                disabled={reviewMode}
+              />
             </div>
           ))}
         </div>
@@ -42,16 +50,20 @@ export default function PpsmPage() {
           {BEH.map((question, index) => (
             <div key={question} className="grid items-center gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
-              <Likert5 value={data.ppsm.behavioral[index]} onChange={(v) => setLikert('ppsm.behavioral', index, v)} />
+              <Likert5
+                value={data.ppsm.behavioral[index]}
+                onChange={(v) => setLikert('ppsm.behavioral', index, v)}
+                disabled={reviewMode}
+              />
             </div>
           ))}
         </div>
       </section>
       <div className="flex flex-wrap gap-2">
-        <Link className="btn" href="/assess/feedback">
+        <Link className="btn" href={`/assess/feedback${reviewQuery}`}>
           次へ（フィードバック）
         </Link>
-        <Link className="btn" href="/assess/pdsm">
+        <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
           戻る
         </Link>
       </div>
