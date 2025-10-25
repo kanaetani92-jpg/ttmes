@@ -60,11 +60,68 @@ const SCORE_ROWS: Array<{ key: string; label: string; path: (scores: StoredScore
   { key: 'ppsm-behavioral', label: 'PPSM 行動的', path: (scores) => scores.ppsm?.behavioral },
 ];
 
+const AssessmentCard = ({ item }: { item: AssessmentHistory }) => {
+  const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+  return (
+    <article className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
+        <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
+      </header>
+      <dl className="grid gap-2 text-xs text-gray-300 md:grid-cols-2">
+        {SCORE_ROWS.map((row) => {
+          const value = item.scores ? row.path(item.scores) : undefined;
+          if (typeof value !== 'number') return null;
+          return (
+            <div
+              key={row.key}
+              className="flex items-center justify-between rounded-lg border border-[#1f2549] bg-[#11163a] px-3 py-2"
+            >
+              <dt className="font-semibold text-gray-400">{row.label}</dt>
+              <dd className="font-bold text-white">{value}</dd>
+            </div>
+          );
+        })}
+      </dl>
+    </article>
+  );
+};
+
+const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
+  const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+  return (
+    <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
+        <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
+      </header>
+      <div className="space-y-3">
+        {item.messages.length === 0 ? (
+          <p className="text-xs text-gray-400">メッセージは保存されていません。</p>
+        ) : (
+          item.messages.map((message) => (
+            <article
+              key={message.id}
+              className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
+            >
+              <p className="text-[10px] uppercase tracking-wide text-gray-500">{message.id}</p>
+              <h4 className="text-sm font-semibold">{message.title}</h4>
+              <p className="text-xs leading-relaxed text-gray-200">{message.body}</p>
+            </article>
+          ))
+        )}
+      </div>
+    </article>
+  );
+};
+
 export default function HistoryPage() {
   const [assessments, setAssessments] = useState<AssessmentHistory[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOlderAssessmentId, setSelectedOlderAssessmentId] = useState('');
+  const [selectedOlderPrescriptionId, setSelectedOlderPrescriptionId] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -146,6 +203,42 @@ export default function HistoryPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const olderAssessments = assessments.slice(3);
+    if (olderAssessments.length === 0) {
+      setSelectedOlderAssessmentId('');
+    } else {
+      setSelectedOlderAssessmentId((prev) => {
+        if (prev && olderAssessments.some((item) => item.id === prev)) {
+          return prev;
+        }
+        return olderAssessments[0]?.id ?? '';
+      });
+    }
+  }, [assessments]);
+
+  useEffect(() => {
+    const olderPrescriptions = prescriptions.slice(3);
+    if (olderPrescriptions.length === 0) {
+      setSelectedOlderPrescriptionId('');
+    } else {
+      setSelectedOlderPrescriptionId((prev) => {
+        if (prev && olderPrescriptions.some((item) => item.id === prev)) {
+          return prev;
+        }
+        return olderPrescriptions[0]?.id ?? '';
+      });
+    }
+  }, [prescriptions]);
+
+  const latestAssessments = assessments.slice(0, 3);
+  const olderAssessments = assessments.slice(3);
+  const selectedOlderAssessment = olderAssessments.find((item) => item.id === selectedOlderAssessmentId);
+
+  const latestPrescriptions = prescriptions.slice(0, 3);
+  const olderPrescriptions = prescriptions.slice(3);
+  const selectedOlderPrescription = olderPrescriptions.find((item) => item.id === selectedOlderPrescriptionId);
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -166,35 +259,40 @@ export default function HistoryPage() {
           <p className="text-sm text-gray-300">保存された回答はまだありません。</p>
         ) : (
           <div className="space-y-4">
-            {assessments.map((item) => {
-              const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
-              return (
-                <article
-                  key={item.id}
-                  className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4"
-                >
-                  <header className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
-                    <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
-                  </header>
-                  <dl className="grid gap-2 text-xs text-gray-300 md:grid-cols-2">
-                    {SCORE_ROWS.map((row) => {
-                      const value = item.scores ? row.path(item.scores) : undefined;
-                      if (typeof value !== 'number') return null;
+            {latestAssessments.map((item) => (
+              <AssessmentCard key={item.id} item={item} />
+            ))}
+            {olderAssessments.length > 0 && (
+              <>
+                <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+                  <label
+                    className="text-xs font-semibold text-gray-400"
+                    htmlFor="older-assessment-select"
+                  >
+                    さらに前の回答を選択
+                  </label>
+                  <select
+                    id="older-assessment-select"
+                    className="w-full rounded-lg border border-[#2a315a] bg-[#0b102b] px-3 py-2 text-sm text-white"
+                    value={selectedOlderAssessmentId}
+                    onChange={(event) => setSelectedOlderAssessmentId(event.target.value)}
+                  >
+                    {olderAssessments.map((item) => {
+                      const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
                       return (
-                        <div
-                          key={row.key}
-                          className="flex items-center justify-between rounded-lg border border-[#1f2549] bg-[#11163a] px-3 py-2"
-                        >
-                          <dt className="font-semibold text-gray-400">{row.label}</dt>
-                          <dd className="font-bold text-white">{value}</dd>
-                        </div>
+                        <option key={item.id} value={item.id}>
+                          {formatDate(item.createdAt)} ／ ステージ：{stageLabel}
+                        </option>
                       );
                     })}
-                  </dl>
-                </article>
-              );
-            })}
+                  </select>
+                  <p className="text-[11px] text-gray-500">選択した回答の詳細が下に表示されます。</p>
+                </div>
+                {selectedOlderAssessment ? (
+                  <AssessmentCard key={selectedOlderAssessment.id} item={selectedOlderAssessment} />
+                ) : null}
+              </>
+            )}
           </div>
         )}
       </section>
@@ -208,36 +306,40 @@ export default function HistoryPage() {
           <p className="text-sm text-gray-300">保存されたフィードバックはまだありません。</p>
         ) : (
           <div className="space-y-4">
-            {prescriptions.map((item) => {
-              const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
-              return (
-                <article
-                  key={item.id}
-                  className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4"
-                >
-                  <header className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
-                    <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
-                  </header>
-                  <div className="space-y-3">
-                    {item.messages.length === 0 ? (
-                      <p className="text-xs text-gray-400">メッセージは保存されていません。</p>
-                    ) : (
-                      item.messages.map((message) => (
-                        <article
-                          key={message.id}
-                          className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
-                        >
-                          <p className="text-[10px] uppercase tracking-wide text-gray-500">{message.id}</p>
-                          <h4 className="text-sm font-semibold">{message.title}</h4>
-                          <p className="text-xs leading-relaxed text-gray-200">{message.body}</p>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {latestPrescriptions.map((item) => (
+              <PrescriptionCard key={item.id} item={item} />
+            ))}
+            {olderPrescriptions.length > 0 && (
+              <>
+                <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+                  <label
+                    className="text-xs font-semibold text-gray-400"
+                    htmlFor="older-prescription-select"
+                  >
+                    さらに前のフィードバックを選択
+                  </label>
+                  <select
+                    id="older-prescription-select"
+                    className="w-full rounded-lg border border-[#2a315a] bg-[#0b102b] px-3 py-2 text-sm text-white"
+                    value={selectedOlderPrescriptionId}
+                    onChange={(event) => setSelectedOlderPrescriptionId(event.target.value)}
+                  >
+                    {olderPrescriptions.map((item) => {
+                      const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+                      return (
+                        <option key={item.id} value={item.id}>
+                          {formatDate(item.createdAt)} ／ ステージ：{stageLabel}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <p className="text-[11px] text-gray-500">選択したフィードバックの詳細が下に表示されます。</p>
+                </div>
+                {selectedOlderPrescription ? (
+                  <PrescriptionCard key={selectedOlderPrescription.id} item={selectedOlderPrescription} />
+                ) : null}
+              </>
+            )}
           </div>
         )}
       </section>

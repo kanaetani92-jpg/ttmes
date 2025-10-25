@@ -54,10 +54,20 @@ export default function FeedbackPage() {
       });
       if (!res.ok) throw new Error(await res.text());
       const json = (await res.json()) as PrescriptionResponse;
-      setResult(json);
 
       const ref = doc(db, 'users', user.uid, 'assessments', json.id);
-      await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
+
+      let finalResult: PrescriptionResponse = json;
+      try {
+        await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
+        finalResult = { ...json, persisted: true };
+      } catch (error) {
+        console.error('Failed to persist assessment on client', error);
+        setError('フィードバックの保存に失敗しました。もう一度お試しください。');
+        finalResult = { ...json, persisted: json.persisted ?? false };
+      }
+
+      setResult(finalResult);
     } catch (e: any) {
       setError(e.message ?? 'エラーが発生しました');
     } finally {
