@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { z } from 'zod';
@@ -67,8 +68,20 @@ export async function POST(request: NextRequest) {
     bands: result.bands,
     messages: result.items
   };
-  const ref = await adminDb.collection('users').doc(user.uid)
-    .collection('prescriptions').add(doc);
 
-  return NextResponse.json({ id: ref.id, ...doc });
+  let id = randomUUID();
+  let persisted = false;
+  try {
+    const ref = await adminDb
+      .collection('users')
+      .doc(user.uid)
+      .collection('prescriptions')
+      .add(doc);
+    id = ref.id;
+    persisted = true;
+  } catch (error) {
+    console.error('Failed to persist prescription', error);
+  }
+
+  return NextResponse.json({ id, persisted, ...doc });
 }

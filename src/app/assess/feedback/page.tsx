@@ -11,6 +11,7 @@ import { auth, db } from '@/lib/firebaseClient';
 type PrescriptionResponse = {
   id: string;
   messages: { id: string; title: string; body: string }[];
+  persisted?: boolean;
 };
 
 export default function FeedbackPage() {
@@ -107,6 +108,11 @@ export default function FeedbackPage() {
       {result && (
         <section className="space-y-4">
           <h3 className="text-lg font-bold">個別フィードバック</h3>
+          {result.persisted === false && (
+            <p className="rounded-lg border border-yellow-600/50 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+              フィードバックは生成されましたが、サーバーへの保存に失敗しました。Firebase の管理者権限と環境変数を確認してください。
+            </p>
+          )}
           {result.messages.map((message) => (
             <article key={message.id} className="space-y-1 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
               <p className="text-xs uppercase tracking-wide text-gray-500">{message.id}</p>
