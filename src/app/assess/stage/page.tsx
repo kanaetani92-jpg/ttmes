@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { MouseEvent } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
@@ -120,20 +118,17 @@ export default function StagePage() {
     [setAssessmentStage],
   );
 
-  const handleNextClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      if (!stage) {
-        event.preventDefault();
-        setStageError('ステージを選択してください。');
-        return;
-      }
+  const handleNextClick = useCallback(() => {
+    if (!stage) {
+      setStageError('ステージを選択してください。');
+      return;
+    }
 
-      setStageError(null);
-      persistStage(stage);
-      setAssessmentStage(stage);
-    },
-    [setAssessmentStage, stage],
-  );
+    setStageError(null);
+    persistStage(stage);
+    setAssessmentStage(stage);
+    router.push(nextPath);
+  }, [nextPath, router, setAssessmentStage, stage]);
 
   const restartToken = searchParams.get('restart');
   const searchParamsString = searchParams.toString();
@@ -206,9 +201,9 @@ export default function StagePage() {
         {stageError && <div className="text-sm text-red-300">{stageError}</div>}
 
         <div className="flex gap-2">
-          <Link className="btn" href={nextPath} onClick={handleNextClick}>
+          <button className="btn" type="button" onClick={handleNextClick}>
             次へ（RISCIへ進む）
-          </Link>
+          </button>
         </div>
       </div>
     </div>
