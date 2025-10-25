@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { z } from 'zod';
 import { selectMessages } from '@/lib/engine';
 
@@ -15,12 +16,30 @@ const payloadSchema = z.object({
   useGemini: z.boolean().optional()
 });
 
-async function verify(request: NextRequest) {
+type VerifiedUser = DecodedIdToken | { uid: string };
+
+async function verify(request: NextRequest): Promise<VerifiedUser | null> {
   const authz = request.headers.get('authorization') || '';
   const token = authz.startsWith('Bearer ') ? authz.slice(7) : null;
   if (!token) return null;
   try {
     return await adminAuth.verifyIdToken(token);
+  } catch {}
+
+  const apiKey = process.env.FIREBASE_CLIENT_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: token })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const user = data.users?.[0];
+    if (!user?.localId) return null;
+    return { uid: user.localId };
   } catch {
     return null;
   }
