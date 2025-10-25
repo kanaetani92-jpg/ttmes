@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 const ITEMS = [
+  { href: '/assess/stage', label: '変容ステージ（設問1）' },
   { href: '/assess/risci', label: 'RISCI（ストレス／コーピング）' },
   { href: '/assess/sma', label: 'SMA（ストレスマネジメント活動）' },
   { href: '/assess/pssm', label: 'PSSM（自己効力感）' },

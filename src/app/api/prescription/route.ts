@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     messages: result.items
   };
 
-  let id = randomUUID();
+  let id: string = randomUUID();
   let persisted = false;
   try {
     const ref = await adminDb
