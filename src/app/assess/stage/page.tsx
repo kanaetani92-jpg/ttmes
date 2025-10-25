@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { useAssessment } from '@/components/AssessmentStore';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
+import type { Stage } from '@/lib/assessment';
 
-type Stage = 'PC' | 'C' | 'PR' | 'A' | 'M';
+type StageOption = { id: Stage; label: string; helper: string };
 
-const OPTIONS: Array<{ id: Stage; label: string; helper: string }> = [
+const OPTIONS: StageOption[] = [
   {
     id: 'PC',
     label: 'いいえ（6か月以内に始める意図はない）',
@@ -33,43 +37,111 @@ const OPTIONS: Array<{ id: Stage; label: string; helper: string }> = [
   },
 ];
 
+const STORAGE_KEY = 'ttm-es';
+
+type StoredData = { stage?: Stage } & Record<string, unknown>;
+
+const isStage = (value: unknown): value is Stage =>
+  value === 'PC' || value === 'C' || value === 'PR' || value === 'A' || value === 'M';
+
 export default function StagePage() {
   const router = useRouter();
+  const { setStage: setAssessmentStage, reset } = useAssessment();
   const [stage, setStage] = useState<Stage | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [stageError, setStageError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // 既存保存値を読み込み（任意）
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('ttm-es');
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.stage) setStage(parsed.stage as Stage);
+        const parsed = JSON.parse(raw) as StoredData;
+        if (isStage(parsed.stage)) {
+          setStage(parsed.stage);
+          setAssessmentStage(parsed.stage);
+        }
       }
-    } catch {}
-  }, []);
+    } catch (error) {
+      console.error('Failed to restore stage from localStorage', error);
+    }
+  }, [setAssessmentStage]);
+
+  function persistStage(nextStage: Stage) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const data: StoredData = raw ? (JSON.parse(raw) as StoredData) : {};
+      data.stage = nextStage;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Failed to persist stage', error);
+    }
+  }
+
+  function handleSelect(nextStage: Stage) {
+    setStage(nextStage);
+    setAssessmentStage(nextStage);
+    setStageError(null);
+    persistStage(nextStage);
+  }
 
   function saveAndNext() {
     if (!stage) {
-      setError('ステージを選択してください。');
+      setStageError('ステージを選択してください。');
       return;
     }
-    setError(null);
+    setStageError(null);
 
-    // localStorage('ttm-es') に stage を保存（他の回答があってもマージ）
-    try {
-      const raw = localStorage.getItem('ttm-es');
-      const data = raw ? JSON.parse(raw) : {};
-      data.stage = stage;
-      localStorage.setItem('ttm-es', JSON.stringify(data));
-    } catch {}
-
+    persistStage(stage);
+    setAssessmentStage(stage);
     router.push('/assess/risci');
+  }
+
+  function handleRestart() {
+    reset();
+    setStage(null);
+    setStageError(null);
+    setActionError(null);
+  }
+
+  function handleHistory() {
+    router.push('/assess/history');
+  }
+
+  async function handleLogout() {
+    setActionError(null);
+    setLoggingOut(true);
+    try {
+      const auth = getFirebaseAuth();
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Failed to sign out', error);
+      setActionError('ログアウトに失敗しました。もう一度お試しください。');
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn" onClick={handleRestart}>
+            はじめから回答する
+          </button>
+          <button className="btn" onClick={handleHistory}>
+            過去の回答とフィードバックを見る
+          </button>
+          <button className="btn" onClick={handleLogout} disabled={loggingOut}>
+            {loggingOut ? 'ログアウト中…' : 'ログアウト'}
+          </button>
+        </div>
+      </div>
+
+      {actionError && <p className="text-sm text-red-300">{actionError}</p>}
 
       <div className="card p-5 space-y-3">
         <div className="space-y-1">
@@ -91,7 +163,7 @@ export default function StagePage() {
           {OPTIONS.map((opt) => (
             <label
               key={opt.id}
-              className={`flex items-start gap-3 p-3 rounded-xl border ${
+              className={`flex items-start gap-3 rounded-xl border p-3 ${
                 stage === opt.id ? 'border-blue-400 bg-[#13214a]' : 'border-[#2a315a] bg-[#0e1330]'
               } cursor-pointer`}
             >
@@ -100,7 +172,7 @@ export default function StagePage() {
                 name="stage"
                 value={opt.id}
                 checked={stage === opt.id}
-                onChange={() => setStage(opt.id)}
+                onChange={() => handleSelect(opt.id)}
                 className="mt-1"
               />
               <div>
@@ -111,7 +183,7 @@ export default function StagePage() {
           ))}
         </div>
 
-        {error && <div className="text-red-300 text-sm">{error}</div>}
+        {stageError && <div className="text-sm text-red-300">{stageError}</div>}
 
         <div className="flex gap-2">
           <button className="btn" onClick={saveAndNext}>

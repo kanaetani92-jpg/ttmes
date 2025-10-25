@@ -1,0 +1,246 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
+import { STAGE_LABELS, Stage } from '@/lib/assessment';
+
+type StoredScores = {
+  stage?: Stage;
+  pssm?: { self_efficacy?: number };
+  pdsm?: { pros?: number; cons?: number };
+  ppsm?: { experiential?: number; behavioral?: number };
+  risci?: { stress?: number; coping?: number };
+  sma?: { planning?: number; reframing?: number; healthy_activity?: number };
+};
+
+type AssessmentHistory = {
+  id: string;
+  createdAt: Date | null;
+  scores: StoredScores | null;
+};
+
+type PrescriptionHistory = {
+  id: string;
+  createdAt: Date | null;
+  scores: StoredScores | null;
+  messages: { id: string; title: string; body: string }[];
+};
+
+const formatDate = (input: Date | null) => {
+  if (!input) return '日時不明';
+  return new Date(input).toLocaleString('ja-JP');
+};
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') {
+    try {
+      const date = value.toDate();
+      if (date instanceof Date && !Number.isNaN(date.getTime())) return date;
+    } catch (error) {
+      console.error('Failed to convert Firestore timestamp', error);
+      return null;
+    }
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const SCORE_ROWS: Array<{ key: string; label: string; path: (scores: StoredScores) => number | undefined }> = [
+  { key: 'risci-stress', label: 'RISCI ストレス', path: (scores) => scores.risci?.stress },
+  { key: 'risci-coping', label: 'RISCI コーピング', path: (scores) => scores.risci?.coping },
+  { key: 'sma-planning', label: 'SMA 計画', path: (scores) => scores.sma?.planning },
+  { key: 'sma-reframing', label: 'SMA リフレーミング', path: (scores) => scores.sma?.reframing },
+  { key: 'sma-healthy', label: 'SMA 健康的な活動', path: (scores) => scores.sma?.healthy_activity },
+  { key: 'pssm', label: 'PSSM 自己効力感', path: (scores) => scores.pssm?.self_efficacy },
+  { key: 'pdsm-pros', label: 'PDSM 利得', path: (scores) => scores.pdsm?.pros },
+  { key: 'pdsm-cons', label: 'PDSM 損失', path: (scores) => scores.pdsm?.cons },
+  { key: 'ppsm-experiential', label: 'PPSM 体験的・認知的', path: (scores) => scores.ppsm?.experiential },
+  { key: 'ppsm-behavioral', label: 'PPSM 行動的', path: (scores) => scores.ppsm?.behavioral },
+];
+
+export default function HistoryPage() {
+  const [assessments, setAssessments] = useState<AssessmentHistory[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      const errors: string[] = [];
+      try {
+        const auth = getFirebaseAuth();
+        const user = auth.currentUser;
+        if (!user) throw new Error('ログインが必要です。');
+        const db = getFirebaseDb();
+
+        try {
+          const assessmentsRef = query(
+            collection(db, 'users', user.uid, 'assessments'),
+            orderBy('createdAt', 'desc'),
+          );
+          const snapshot = await getDocs(assessmentsRef);
+          if (active) {
+            const items: AssessmentHistory[] = snapshot.docs.map((doc) => {
+              const data = doc.data() as { createdAt?: unknown; payload?: { scores?: StoredScores } };
+              return {
+                id: doc.id,
+                createdAt: toDate(data.createdAt ?? null),
+                scores: data.payload?.scores ?? null,
+              };
+            });
+            setAssessments(items);
+          }
+        } catch (err) {
+          console.error('Failed to load assessments history', err);
+          errors.push('過去の回答の取得に失敗しました。');
+          if (active) setAssessments([]);
+        }
+
+        try {
+          const prescriptionsRef = query(
+            collection(db, 'users', user.uid, 'prescriptions'),
+            orderBy('createdAt', 'desc'),
+          );
+          const snapshot = await getDocs(prescriptionsRef);
+          if (active) {
+            const items: PrescriptionHistory[] = snapshot.docs.map((doc) => {
+              const data = doc.data() as {
+                createdAt?: unknown;
+                scores?: StoredScores;
+                messages?: { id: string; title: string; body: string }[];
+              };
+              return {
+                id: doc.id,
+                createdAt: toDate(data.createdAt ?? null),
+                scores: data.scores ?? null,
+                messages: Array.isArray(data.messages) ? data.messages : [],
+              };
+            });
+            setPrescriptions(items);
+          }
+        } catch (err) {
+          console.error('Failed to load prescriptions history', err);
+          errors.push('フィードバックの取得に失敗しました。');
+          if (active) setPrescriptions([]);
+        }
+      } catch (err) {
+        console.error('Failed to load history', err);
+        errors.push(err instanceof Error ? err.message : '履歴の取得に失敗しました。');
+      } finally {
+        if (active) {
+          setError(errors.length ? errors.join(' ') : null);
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <header className="space-y-1">
+        <h2 className="text-xl font-bold">過去の回答とフィードバック</h2>
+        <p className="text-sm text-gray-400">
+          これまでに保存された回答とフィードバックを一覧できます。最新のものから表示します。
+        </p>
+      </header>
+
+      {error && <p className="rounded-lg border border-red-800/60 bg-red-900/20 p-3 text-sm text-red-200">{error}</p>}
+
+      <section className="card space-y-4 p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">回答履歴</h3>
+          {loading && <span className="text-xs text-gray-400">読み込み中…</span>}
+        </div>
+        {assessments.length === 0 && !loading ? (
+          <p className="text-sm text-gray-300">保存された回答はまだありません。</p>
+        ) : (
+          <div className="space-y-4">
+            {assessments.map((item) => {
+              const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+              return (
+                <article
+                  key={item.id}
+                  className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4"
+                >
+                  <header className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
+                    <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
+                  </header>
+                  <dl className="grid gap-2 text-xs text-gray-300 md:grid-cols-2">
+                    {SCORE_ROWS.map((row) => {
+                      const value = item.scores ? row.path(item.scores) : undefined;
+                      if (typeof value !== 'number') return null;
+                      return (
+                        <div
+                          key={row.key}
+                          className="flex items-center justify-between rounded-lg border border-[#1f2549] bg-[#11163a] px-3 py-2"
+                        >
+                          <dt className="font-semibold text-gray-400">{row.label}</dt>
+                          <dd className="font-bold text-white">{value}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">フィードバック履歴</h3>
+          {loading && <span className="text-xs text-gray-400">読み込み中…</span>}
+        </div>
+        {prescriptions.length === 0 && !loading ? (
+          <p className="text-sm text-gray-300">保存されたフィードバックはまだありません。</p>
+        ) : (
+          <div className="space-y-4">
+            {prescriptions.map((item) => {
+              const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+              return (
+                <article
+                  key={item.id}
+                  className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4"
+                >
+                  <header className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
+                    <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
+                  </header>
+                  <div className="space-y-3">
+                    {item.messages.length === 0 ? (
+                      <p className="text-xs text-gray-400">メッセージは保存されていません。</p>
+                    ) : (
+                      item.messages.map((message) => (
+                        <article
+                          key={message.id}
+                          className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
+                        >
+                          <p className="text-[10px] uppercase tracking-wide text-gray-500">{message.id}</p>
+                          <h4 className="text-sm font-semibold">{message.title}</h4>
+                          <p className="text-xs leading-relaxed text-gray-200">{message.body}</p>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
