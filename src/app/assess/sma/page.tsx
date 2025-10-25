@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
@@ -9,6 +10,9 @@ const REFRAME = ['うまくいかない時に見方を切り替えた', 'でき�
 const HEALTHY = ['睡眠・休息を確保した', '軽い運動やストレッチをした'];
 
 export default function SmaPage() {
+  const searchParams = useSearchParams();
+  const reviewMode = searchParams.get('review') === '1';
+  const reviewQuery = reviewMode ? '?review=1' : '';
   const { data, setLikert } = useAssessment();
   return (
     <div className="space-y-6">
@@ -22,7 +26,11 @@ export default function SmaPage() {
           {PLAN.map((question, index) => (
             <div key={question} className="grid items-center gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
-              <Likert5 value={data.sma.planning[index]} onChange={(v) => setLikert('sma.planning', index, v)} />
+              <Likert5
+                value={data.sma.planning[index]}
+                onChange={(v) => setLikert('sma.planning', index, v)}
+                disabled={reviewMode}
+              />
             </div>
           ))}
         </div>
@@ -31,7 +39,11 @@ export default function SmaPage() {
           {REFRAME.map((question, index) => (
             <div key={question} className="grid items-center gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
-              <Likert5 value={data.sma.reframing[index]} onChange={(v) => setLikert('sma.reframing', index, v)} />
+              <Likert5
+                value={data.sma.reframing[index]}
+                onChange={(v) => setLikert('sma.reframing', index, v)}
+                disabled={reviewMode}
+              />
             </div>
           ))}
         </div>
@@ -40,16 +52,20 @@ export default function SmaPage() {
           {HEALTHY.map((question, index) => (
             <div key={question} className="grid items-center gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
-              <Likert5 value={data.sma.healthy[index]} onChange={(v) => setLikert('sma.healthy', index, v)} />
+              <Likert5
+                value={data.sma.healthy[index]}
+                onChange={(v) => setLikert('sma.healthy', index, v)}
+                disabled={reviewMode}
+              />
             </div>
           ))}
         </div>
       </section>
       <div className="flex gap-2">
-        <Link className="btn" href="/assess/pssm">
+        <Link className="btn" href={`/assess/pssm${reviewQuery}`}>
           次へ（PSSM）
         </Link>
-        <Link className="btn" href="/assess/risci">
+        <Link className="btn" href={`/assess/risci${reviewQuery}`}>
           戻る
         </Link>
       </div>
