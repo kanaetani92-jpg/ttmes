@@ -5,7 +5,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "OK",
+            "label": "要注意",
             "range": [
               3,
               6
@@ -13,7 +13,7 @@
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
               7,
               12
@@ -21,7 +21,7 @@
           },
           {
             "id": "HIGH",
-            "label": "ATTN",
+            "label": "問題なし",
             "range": [
               13,
               15
@@ -29,16 +29,16 @@
           }
         ],
         "prescription_collapsed": {
-          "LOW": "OK",
+          "LOW": "ATTN",
           "MID": "OK",
-          "HIGH": "ATTN"
+          "HIGH": "OK"
         }
       },
       "coping": {
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               3,
               6
@@ -46,7 +46,7 @@
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
               7,
               11
@@ -54,7 +54,7 @@
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
               12,
               15
@@ -73,25 +73,25 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               2,
-              5
+              4
             ]
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
-              6,
-              8
+              5,
+              7
             ]
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
-              9,
+              8,
               10
             ]
           }
@@ -101,25 +101,25 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               2,
-              6
+              5
             ]
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
-              7,
-              9
+              6,
+              8
             ]
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
-              10,
+              9,
               10
             ]
           }
@@ -129,7 +129,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               2,
               5
@@ -137,7 +137,7 @@
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
               6,
               8
@@ -145,7 +145,7 @@
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
               9,
               10
@@ -159,7 +159,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               5,
               10
@@ -167,7 +167,7 @@
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
               11,
               16
@@ -175,13 +175,67 @@
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
               17,
               25
             ]
           }
-        ]
+        ],
+        "banding_by_gender": {
+          "male": [
+            {
+              "id": "LOW",
+              "label": "要注意",
+              "range": [
+                5,
+                12
+              ]
+            },
+            {
+              "id": "MID",
+              "label": "普通",
+              "range": [
+                13,
+                17
+              ]
+            },
+            {
+              "id": "HIGH",
+              "label": "問題なし",
+              "range": [
+                18,
+                25
+              ]
+            }
+          ],
+          "female": [
+            {
+              "id": "LOW",
+              "label": "要注意",
+              "range": [
+                5,
+                10
+              ]
+            },
+            {
+              "id": "MID",
+              "label": "普通",
+              "range": [
+                11,
+                16
+              ]
+            },
+            {
+              "id": "HIGH",
+              "label": "問題なし",
+              "range": [
+                17,
+                25
+              ]
+            }
+          ]
+        }
       }
     },
     "PDSM": {
@@ -189,7 +243,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "LOW",
+            "label": "要注意",
             "range": [
               3,
               11
@@ -197,7 +251,7 @@
           },
           {
             "id": "HIGH",
-            "label": "HIGH",
+            "label": "問題なし",
             "range": [
               12,
               15
@@ -209,7 +263,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "LOW",
+            "label": "問題なし",
             "range": [
               3,
               7
@@ -217,7 +271,7 @@
           },
           {
             "id": "HIGH",
-            "label": "HIGH",
+            "label": "要注意",
             "range": [
               8,
               15
@@ -231,25 +285,25 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               5,
-              10
+              9
             ]
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
-              11,
-              16
+              10,
+              15
             ]
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
-              17,
+              16,
               25
             ]
           }
@@ -259,7 +313,7 @@
         "banding": [
           {
             "id": "LOW",
-            "label": "ATTN",
+            "label": "要注意",
             "range": [
               5,
               10
@@ -267,17 +321,17 @@
           },
           {
             "id": "MID",
-            "label": "OK",
+            "label": "普通",
             "range": [
               11,
-              16
+              14
             ]
           },
           {
             "id": "HIGH",
-            "label": "OK",
+            "label": "問題なし",
             "range": [
-              17,
+              15,
               25
             ]
           }
