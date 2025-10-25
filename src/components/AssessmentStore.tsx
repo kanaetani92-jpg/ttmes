@@ -1,6 +1,13 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   AssessmentData,
   Likert5,
@@ -31,6 +38,8 @@ const AssessmentCtx = createContext<AssessmentContext>({
 
 export function AssessmentProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AssessmentData>(defaultData);
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const skipNextPersist = useRef(false);
 
   useEffect(() => {
     try {
@@ -42,11 +51,21 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     } catch (error) {
       console.error('Failed to restore assessment data', error);
     }
+    setHasHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data]);
+  }, [data, hasHydrated]);
 
   const api = useMemo<AssessmentContext>(() => ({
     data,
@@ -62,8 +81,9 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       setData((prev) => ({ ...prev, stage }));
     },
     reset: () => {
-      setData(createDefaultAssessment());
+      skipNextPersist.current = true;
       localStorage.removeItem(STORAGE_KEY);
+      setData(createDefaultAssessment());
     },
   }), [data]);
 
