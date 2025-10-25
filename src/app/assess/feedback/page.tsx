@@ -1,39 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { getIdToken } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
-import { STAGE_LABELS, Stage, calculateScores } from '@/lib/assessment';
+import { STAGE_LABELS, Stage } from '@/lib/assessment';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
+import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
 
 type PrescriptionResponse = {
   id: string;
   messages: { id: string; title: string; body: string }[];
   scores?: ReturnType<typeof buildAssessmentRequest>['scores'];
   persisted?: boolean;
+  bands?: {
+    PPSM?: {
+      experiential?: string;
+      behavioral?: string;
+    };
+  };
 };
 
 export default function FeedbackPage() {
   const { data, setStage } = useAssessment();
-  const scores = useMemo(() => calculateScores(data), [data]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PrescriptionResponse | null>(null);
-
-  const rows = [
-    { label: 'RISCI ストレス', value: scores.risci.stress },
-    { label: 'RISCI コーピング', value: scores.risci.coping },
-    { label: 'SMA 計画', value: scores.sma.planning },
-    { label: 'SMA リフレーミング', value: scores.sma.reframing },
-    { label: 'SMA 健康的な活動', value: scores.sma.healthy },
-    { label: 'PSSM 自己効力感', value: scores.pssm },
-    { label: 'PDSM 利得', value: scores.pdsm.pros },
-    { label: 'PDSM 損失', value: scores.pdsm.cons },
-    { label: 'PPSM 体験的・認知的', value: scores.ppsm.experiential },
-    { label: 'PPSM 行動的', value: scores.ppsm.behavioral },
-  ];
 
   async function submit() {
     setError(null);
@@ -109,22 +102,16 @@ export default function FeedbackPage() {
             ))}
           </select>
         </div>
-        <hr className="border-[#1f2549]" />
-        <div className="grid gap-3 md:grid-cols-2">
-          {rows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between rounded-lg border border-[#1f2549] bg-[#0e1330] px-4 py-3">
-              <span className="text-xs font-semibold text-gray-400">{row.label}</span>
-              <span className="text-lg font-bold">{row.value}</span>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs leading-relaxed text-gray-400">
+          各質問紙の得点は自動的に集計され、サーバーで安全に処理されます。画面上には表示されません。
+        </p>
       </section>
       <div className="flex flex-wrap items-center gap-3">
         <button className="btn" onClick={submit} disabled={loading}>
           {loading ? '生成中…' : 'フィードバックを生成'}
         </button>
-        <Link className="btn" href="/assess/summary">
-          集計へ戻る
+        <Link className="btn" href="/assess/ppsm">
+          回答を見直す
         </Link>
       </div>
       {error && <p className="text-sm text-red-300">{error}</p>}
@@ -136,13 +123,45 @@ export default function FeedbackPage() {
               フィードバックは生成されましたが、サーバーへの保存に失敗しました。Firebase の管理者権限と環境変数を確認してください。
             </p>
           )}
-          {result.messages.map((message) => (
-            <article key={message.id} className="space-y-1 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500">{message.id}</p>
-              <h4 className="font-semibold">{message.title}</h4>
-              <p className="text-sm leading-relaxed text-gray-100">{message.body}</p>
-            </article>
-          ))}
+          <div className="space-y-3">
+            <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+              <h4 className="text-sm font-semibold text-gray-200">プロセスの評価</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                {([
+                  {
+                    key: 'experiential' as const,
+                    label: PROCESS_LABELS.experiential,
+                    band: result.bands?.PPSM?.experiential,
+                  },
+                  {
+                    key: 'behavioral' as const,
+                    label: PROCESS_LABELS.behavioral,
+                    band: result.bands?.PPSM?.behavioral,
+                  },
+                ]).map((item) => {
+                  const bandLabel = getProcessBandLabel(item.band);
+              return (
+                <div
+                  key={item.key}
+                  className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
+                >
+                  <p className="text-xs font-semibold text-gray-400">{item.label}</p>
+                  <div className="text-sm text-gray-300">
+                    {bandLabel ? `評価：${bandLabel}` : '評価：不明'}
+                  </div>
+                </div>
+              );
+            })}
+              </div>
+            </div>
+            {result.messages.map((message) => (
+              <article key={message.id} className="space-y-1 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">{message.id}</p>
+                <h4 className="font-semibold">{message.title}</h4>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-100">{message.body}</p>
+              </article>
+            ))}
+          </div>
         </section>
       )}
     </div>

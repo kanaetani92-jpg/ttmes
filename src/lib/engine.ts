@@ -98,7 +98,13 @@ function findByBands(list: Message[], bands: Record<string,string>) {
 }
 
 export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
-  const stageLabels: Record<Stage,string> = { PC:'前熟考期', C:'熟考期', PR:'準備期', A:'実行期', M:'維持期' };
+  const stageLabels: Record<Stage,string> = {
+    PC: '前熟考期 🤔',
+    C: '熟考期 🧠💭',
+    PR: '準備期 🗓️📝',
+    A: '実行期 🚀',
+    M: '維持期 🌱🔁',
+  };
 
   const bands = computeBands(scores);
   const out: any[] = [];
@@ -107,29 +113,6 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
   const stageMessages = (catalog as any).messages['HEADER.STAGE'] as Message[];
   const stagePick = filterByStage(stageMessages, scores.stage)[0] || stageMessages[0];
   out.push(render(stagePick, { stage_label: stageLabels[scores.stage] }));
-
-  // DB matrix
-  const dbList = (catalog as any).messages['DB.MATRIX'] as Message[];
-  const dbPick = findByBands(filterByStage(dbList, scores.stage),
-    { pros: bands.PDSM.pros, cons: bands.PDSM.cons });
-  out.push(render(dbPick, { stage_label: stageLabels[scores.stage] }));
-
-  // Self-efficacy
-  const seList = (catalog as any).messages['SE.BANDED'] as Message[];
-  const sePick = findByBands(filterByStage(seList, scores.stage), { self_efficacy: bands.PSSM.self_efficacy });
-  out.push(render(sePick, {}));
-
-  // Processes
-  if (['PC','C'].includes(scores.stage)) {
-    const list = (catalog as any).messages['PROC.EXP'] as Message[];
-    out.push(render(findByBands(filterByStage(list, scores.stage), { experiential: bands.PPSM.experiential }), {}));
-  } else if (scores.stage === 'PR') {
-    const list = (catalog as any).messages['PROC.EXP×BEH'] as Message[];
-    out.push(render(findByBands(filterByStage(list, scores.stage), { experiential: bands.PPSM.experiential, behavioral: bands.PPSM.behavioral }), {}));
-  } else {
-    const list = (catalog as any).messages['PROC.BEH'] as Message[];
-    out.push(render(findByBands(filterByStage(list, scores.stage), { behavioral: bands.PPSM.behavioral }), {}));
-  }
 
   // RISCI detail
   const risciStressList = (catalog as any).messages['RISCI.STRESS'] as Message[];
@@ -141,6 +124,29 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
   out.push(render(pickById(`SMA.PLANNING.${bands.SMA.planning}`), {}));
   out.push(render(pickById(`SMA.REFRAMING.${bands.SMA.reframing}`), {}));
   out.push(render(pickById(`SMA.HEALTHY.${bands.SMA.healthy_activity}`), {}));
+
+  // Self-efficacy
+  const seList = (catalog as any).messages['SE.BANDED'] as Message[];
+  const sePick = findByBands(filterByStage(seList, scores.stage), { self_efficacy: bands.PSSM.self_efficacy });
+  out.push(render(sePick, {}));
+
+  // DB matrix
+  const dbList = (catalog as any).messages['DB.MATRIX'] as Message[];
+  const dbPick = findByBands(filterByStage(dbList, scores.stage),
+    { pros: bands.PDSM.pros, cons: bands.PDSM.cons });
+  out.push(render(dbPick, { stage_label: stageLabels[scores.stage] }));
+
+  // Processes
+  const experientialList = (catalog as any).messages['PROC.EXP'] as Message[];
+  out.push(render(
+    findByBands(filterByStage(experientialList, scores.stage), { experiential: bands.PPSM.experiential }),
+    {},
+  ));
+  const behavioralList = (catalog as any).messages['PROC.BEH'] as Message[];
+  out.push(render(
+    findByBands(filterByStage(behavioralList, scores.stage), { behavioral: bands.PPSM.behavioral }),
+    {},
+  ));
 
   return { items: out, bands };
 }

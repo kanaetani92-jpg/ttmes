@@ -153,9 +153,9 @@ export const buildAssessmentPayload = (data: AssessmentData) => {
 };
 
 export const STAGE_LABELS: Record<Stage, string> = {
-  PC: '前熟考',
-  C: '熟考',
-  PR: '準備',
-  A: '実行',
-  M: '維持',
+  PC: '前熟考 🤔',
+  C: '熟考 🧠💭',
+  PR: '準備 🗓️📝',
+  A: '実行 🚀',
+  M: '維持 🌱🔁',
 };

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { STAGE_LABELS, Stage } from '@/lib/assessment';
+import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
 
 type StoredScores = {
   stage?: Stage;
@@ -20,11 +21,19 @@ type AssessmentHistory = {
   scores: StoredScores | null;
 };
 
+type StoredBands = {
+  PPSM?: {
+    experiential?: string;
+    behavioral?: string;
+  };
+};
+
 type PrescriptionHistory = {
   id: string;
   createdAt: Date | null;
   scores: StoredScores | null;
   messages: { id: string; title: string; body: string }[];
+  bands: StoredBands | null;
 };
 
 const formatDate = (input: Date | null) => {
@@ -47,19 +56,6 @@ const toDate = (value: any): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const SCORE_ROWS: Array<{ key: string; label: string; path: (scores: StoredScores) => number | undefined }> = [
-  { key: 'risci-stress', label: 'RISCI ストレス', path: (scores) => scores.risci?.stress },
-  { key: 'risci-coping', label: 'RISCI コーピング', path: (scores) => scores.risci?.coping },
-  { key: 'sma-planning', label: 'SMA 計画', path: (scores) => scores.sma?.planning },
-  { key: 'sma-reframing', label: 'SMA リフレーミング', path: (scores) => scores.sma?.reframing },
-  { key: 'sma-healthy', label: 'SMA 健康的な活動', path: (scores) => scores.sma?.healthy_activity },
-  { key: 'pssm', label: 'PSSM 自己効力感', path: (scores) => scores.pssm?.self_efficacy },
-  { key: 'pdsm-pros', label: 'PDSM 利得', path: (scores) => scores.pdsm?.pros },
-  { key: 'pdsm-cons', label: 'PDSM 損失', path: (scores) => scores.pdsm?.cons },
-  { key: 'ppsm-experiential', label: 'PPSM 体験的・認知的', path: (scores) => scores.ppsm?.experiential },
-  { key: 'ppsm-behavioral', label: 'PPSM 行動的', path: (scores) => scores.ppsm?.behavioral },
-];
-
 const AssessmentCard = ({ item }: { item: AssessmentHistory }) => {
   const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
   return (
@@ -68,33 +64,54 @@ const AssessmentCard = ({ item }: { item: AssessmentHistory }) => {
         <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
         <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
       </header>
-      <dl className="grid gap-2 text-xs text-gray-300 md:grid-cols-2">
-        {SCORE_ROWS.map((row) => {
-          const value = item.scores ? row.path(item.scores) : undefined;
-          if (typeof value !== 'number') return null;
-          return (
-            <div
-              key={row.key}
-              className="flex items-center justify-between rounded-lg border border-[#1f2549] bg-[#11163a] px-3 py-2"
-            >
-              <dt className="font-semibold text-gray-400">{row.label}</dt>
-              <dd className="font-bold text-white">{value}</dd>
-            </div>
-          );
-        })}
-      </dl>
+      <p className="text-xs leading-relaxed text-gray-400">
+        個別の得点は履歴では表示されませんが、フィードバックは以下に保存されています。
+      </p>
     </article>
   );
 };
 
 const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
   const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+  const processRows = ([
+    {
+      key: 'experiential' as const,
+      label: PROCESS_LABELS.experiential,
+      band: item.bands?.PPSM?.experiential,
+    },
+    {
+      key: 'behavioral' as const,
+      label: PROCESS_LABELS.behavioral,
+      band: item.bands?.PPSM?.behavioral,
+    },
+  ]);
+  const hasAnyBand = processRows.some((row) => !!row.band);
   return (
     <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
         <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
       </header>
+      {processRows.length > 0 ? (
+        <div className="space-y-2 rounded-lg border border-[#1f2549] bg-[#11163a] p-3">
+          <h4 className="text-xs font-semibold text-gray-300">プロセスの評価</h4>
+          {hasAnyBand ? (
+            <div className="space-y-2">
+              {processRows.map((row) => {
+                const bandLabel = getProcessBandLabel(row.band);
+                return (
+                  <div key={row.key} className="space-y-0.5 text-xs text-gray-300">
+                    <p className="font-semibold text-gray-400">{row.label}</p>
+                    <p>{bandLabel ? `評価：${bandLabel}` : '評価：不明'}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">評価情報は保存されていません。</p>
+          )}
+        </div>
+      ) : null}
       <div className="space-y-3">
         {item.messages.length === 0 ? (
           <p className="text-xs text-gray-400">メッセージは保存されていません。</p>
@@ -106,7 +123,7 @@ const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
             >
               <p className="text-[10px] uppercase tracking-wide text-gray-500">{message.id}</p>
               <h4 className="text-sm font-semibold">{message.title}</h4>
-              <p className="text-xs leading-relaxed text-gray-200">{message.body}</p>
+              <p className="whitespace-pre-line text-xs leading-relaxed text-gray-200">{message.body}</p>
             </article>
           ))
         )}
@@ -171,12 +188,14 @@ export default function HistoryPage() {
                 createdAt?: unknown;
                 scores?: StoredScores;
                 messages?: { id: string; title: string; body: string }[];
+                bands?: StoredBands;
               };
               return {
                 id: doc.id,
                 createdAt: toDate(data.createdAt ?? null),
                 scores: data.scores ?? null,
                 messages: Array.isArray(data.messages) ? data.messages : [],
+                bands: data.bands ?? null,
               };
             });
             setPrescriptions(items);
