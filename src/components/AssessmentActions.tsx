@@ -36,7 +36,6 @@ export function AssessmentActions() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const showHistoryLinks = pathname === '/assess';
   const isFeedbackPage = pathname === '/assess/feedback';
 
   if (isFeedbackPage) {
@@ -62,16 +61,9 @@ export function AssessmentActions() {
     <div className="space-y-2">
       <div className="flex flex-wrap justify-end gap-2">
         <RestartAssessmentButton onRestart={() => setActionError(null)} />
-        {showHistoryLinks ? (
-          <>
-            <Link className="btn" href="/assess/history#assessment-history">
-              過去の回答
-            </Link>
-            <Link className="btn" href="/assess/history#feedback-history">
-              フィードバックを見る
-            </Link>
-          </>
-        ) : null}
+        <Link className="btn" href="/assess/history#assessment-history">
+          過去の回答
+        </Link>
         <button type="button" className="btn" onClick={handleLogout} disabled={loggingOut}>
           {loggingOut ? 'ログアウト中…' : 'ログアウト'}
         </button>

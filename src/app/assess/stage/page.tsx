@@ -176,10 +176,6 @@ export default function StagePage() {
             次へ（RISCIへ進む）
           </Link>
         </div>
-
-        <small className="muted">
-          ※ この回答は以降のフィードバック分岐（体験的/行動的プロセス、自己効力感の出し分け等）に用います。
-        </small>
       </div>
     </div>
   );
