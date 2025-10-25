@@ -11,6 +11,7 @@ import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 type PrescriptionResponse = {
   id: string;
   messages: { id: string; title: string; body: string }[];
+  scores?: ReturnType<typeof buildAssessmentRequest>['scores'];
   persisted?: boolean;
 };
 
@@ -60,6 +61,16 @@ export default function FeedbackPage() {
       let finalResult: PrescriptionResponse = json;
       try {
         await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
+        const prescriptionRef = doc(db, 'users', user.uid, 'prescriptions', json.id);
+        await setDoc(
+          prescriptionRef,
+          {
+            createdAt: serverTimestamp(),
+            scores: json.scores ?? payload.scores,
+            messages: json.messages ?? [],
+          },
+          { merge: true },
+        );
         finalResult = { ...json, persisted: true };
       } catch (error) {
         console.error('Failed to persist assessment on client', error);

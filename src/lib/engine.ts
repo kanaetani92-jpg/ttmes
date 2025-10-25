@@ -142,8 +142,6 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
   out.push(render(pickById(`SMA.REFRAMING.${bands.SMA.reframing}`), {}));
   out.push(render(pickById(`SMA.HEALTHY.${bands.SMA.healthy_activity}`), {}));
 
-  // Footer
-  out.push(render(pickById('FOOTER.NEXT_STEP'), {}));
   return { items: out, bands };
 }
 

@@ -5,33 +5,38 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
 
-type StageOption = { id: Stage; label: string; helper: string };
+type StageOption = { id: Stage; stageLabel: string; description: string };
 
 const OPTIONS: StageOption[] = [
   {
     id: 'PC',
-    label: 'いいえ（6か月以内に始める意図はない）',
-    helper: '前熟考期：まだ始めるつもりはない',
+    stageLabel: '前熟考期：',
+    description:
+      'いいえ。そして、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図はありません。',
   },
   {
     id: 'C',
-    label: 'いいえ（6か月以内に始める意図がある）',
-    helper: '熟考期：半年以内に始めたい',
+    stageLabel: '熟考期：',
+    description:
+      'いいえ。しかし、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図があります。',
   },
   {
     id: 'PR',
-    label: 'いいえ（30日以内に始める意図がある）',
-    helper: '準備期：1か月以内に始める予定',
+    stageLabel: '準備期：',
+    description:
+      'いいえ。しかし、私は、30日以内に効果的なストレスマネジメント行動を始める意図があります。',
   },
   {
     id: 'A',
-    label: 'はい（直近30日も実践／開始から6か月未満）',
-    helper: '実行期：はじめてから6か月未満',
+    stageLabel: '実行期：',
+    description:
+      'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以内です。',
   },
   {
     id: 'M',
-    label: 'はい（直近30日も実践／開始から6か月以上）',
-    helper: '維持期：はじめてから6か月以上',
+    stageLabel: '維持期：',
+    description:
+      'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以上になります。',
   },
 ];
 
@@ -129,17 +134,11 @@ export default function StagePage() {
       </header>
 
       <div className="card p-5 space-y-3">
-        <div className="space-y-1">
-          <div className="font-semibold">「効果的なストレスマネジメント行動」の定義</div>
-          <p className="text-sm text-gray-300">
-            <b>1日に20分以上</b>、規則的にリラクセーションや身体活動をしたり、だれかと話をしたり、
-            社会的な活動に参加するなど、ストレスをコントロールするのに役立つ健康的な活動。
+        <div className="space-y-2 text-sm text-gray-300">
+          <p>
+            ストレスマネジメント行動とは、1日に20分以上、規則的にリラクセーションしたり、身体活動をしたり、だれかと話をしたり、社会的な活動に参加するなど、ストレスをコントロールするために役立つ健康に役立つ活動を言います。
           </p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="font-semibold">質問</div>
-          <p className="text-sm">
+          <p className="text-white">
             あなたは日常生活の中で、このような効果的なストレスマネジメント行動を実践していますか。
           </p>
         </div>
@@ -161,8 +160,8 @@ export default function StagePage() {
                 className="mt-1"
               />
               <div>
-                <div className="font-medium">{opt.label}</div>
-                <div className="text-xs text-gray-400">{opt.helper}</div>
+                <div className="font-medium">{opt.stageLabel}</div>
+                <div className="text-xs text-gray-400">{opt.description}</div>
               </div>
             </label>
           ))}
