@@ -104,7 +104,9 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
   const out: any[] = [];
 
   // Header
-  out.push(render(pickById('HEADER.STAGE'), { stage_label: stageLabels[scores.stage] }));
+  const stageMessages = (catalog as any).messages['HEADER.STAGE'] as Message[];
+  const stagePick = filterByStage(stageMessages, scores.stage)[0] || stageMessages[0];
+  out.push(render(stagePick, { stage_label: stageLabels[scores.stage] }));
 
   // DB matrix
   const dbList = (catalog as any).messages['DB.MATRIX'] as Message[];
@@ -113,13 +115,9 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
   out.push(render(dbPick, { stage_label: stageLabels[scores.stage] }));
 
   // Self-efficacy
-  if (['PC','C'].includes(scores.stage)) {
-    out.push(render(pickById('SE.GEN.PC_C'), {}));
-  } else {
-    const seList = (catalog as any).messages['SE.BANDED'] as Message[];
-    const sePick = findByBands(filterByStage(seList, scores.stage), { self_efficacy: bands.PSSM.self_efficacy });
-    out.push(render(sePick, {}));
-  }
+  const seList = (catalog as any).messages['SE.BANDED'] as Message[];
+  const sePick = findByBands(filterByStage(seList, scores.stage), { self_efficacy: bands.PSSM.self_efficacy });
+  out.push(render(sePick, {}));
 
   // Processes
   if (['PC','C'].includes(scores.stage)) {
@@ -133,9 +131,11 @@ export function selectMessages(scores: Scores, opts?: { useGemini?: boolean }) {
     out.push(render(findByBands(filterByStage(list, scores.stage), { behavioral: bands.PPSM.behavioral }), {}));
   }
 
-  // RISCI presc
-  out.push(render(pickById(`RISCI.STRESS.PRESC.${bands.RISCI_presc.stress}`), {}));
-  out.push(render(pickById(`RISCI.COPING.PRESC.${bands.RISCI_presc.coping}`), {}));
+  // RISCI detail
+  const risciStressList = (catalog as any).messages['RISCI.STRESS'] as Message[];
+  out.push(render(findByBands(filterByStage(risciStressList, scores.stage), { stress: bands.RISCI.stress }), {}));
+  const risciCopingList = (catalog as any).messages['RISCI.COPING'] as Message[];
+  out.push(render(findByBands(filterByStage(risciCopingList, scores.stage), { coping: bands.RISCI.coping }), {}));
 
   // SMA
   out.push(render(pickById(`SMA.PLANNING.${bands.SMA.planning}`), {}));
