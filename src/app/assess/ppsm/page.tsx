@@ -48,8 +48,8 @@ export default function PpsmPage() {
         </div>
       </section>
       <div className="flex flex-wrap gap-2">
-        <Link className="btn" href="/assess/summary">
-          次へ（集計）
+        <Link className="btn" href="/assess/feedback">
+          次へ（フィードバック）
         </Link>
         <Link className="btn" href="/assess/pdsm">
           戻る
