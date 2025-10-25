@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
@@ -83,16 +84,16 @@ export default function StagePage() {
     persistStage(nextStage);
   }
 
-  function saveAndNext() {
+  function handleNext(event: MouseEvent<HTMLAnchorElement>) {
     if (!stage) {
+      event.preventDefault();
       setStageError('ステージを選択してください。');
       return;
     }
-    setStageError(null);
 
+    setStageError(null);
     persistStage(stage);
     setAssessmentStage(stage);
-    router.push('/assess/risci');
   }
 
   const restartToken = searchParams.get('restart');
@@ -158,9 +159,9 @@ export default function StagePage() {
         {stageError && <div className="text-sm text-red-300">{stageError}</div>}
 
         <div className="flex gap-2">
-          <button className="btn" onClick={saveAndNext}>
+          <Link className="btn" href="/assess/risci" onClick={handleNext}>
             次へ（RISCIへ進む）
-          </button>
+          </Link>
         </div>
 
         <small className="muted">
