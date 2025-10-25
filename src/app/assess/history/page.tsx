@@ -223,40 +223,33 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    const olderAssessments = assessments.slice(3);
-    if (olderAssessments.length === 0) {
-      setSelectedOlderAssessmentId('');
-    } else {
-      setSelectedOlderAssessmentId((prev) => {
-        if (prev && olderAssessments.some((item) => item.id === prev)) {
-          return prev;
-        }
-        return olderAssessments[0]?.id ?? '';
-      });
-    }
+    const olderAssessments = assessments.slice(1);
+    setSelectedOlderAssessmentId((prev) => {
+      if (olderAssessments.length === 0) {
+        return '';
+      }
+      return prev && olderAssessments.some((item) => item.id === prev) ? prev : '';
+    });
   }, [assessments]);
 
   useEffect(() => {
-    const olderPrescriptions = prescriptions.slice(3);
-    if (olderPrescriptions.length === 0) {
-      setSelectedOlderPrescriptionId('');
-    } else {
-      setSelectedOlderPrescriptionId((prev) => {
-        if (prev && olderPrescriptions.some((item) => item.id === prev)) {
-          return prev;
-        }
-        return olderPrescriptions[0]?.id ?? '';
-      });
-    }
+    const olderPrescriptions = prescriptions.slice(1);
+    setSelectedOlderPrescriptionId((prev) => {
+      if (olderPrescriptions.length === 0) {
+        return '';
+      }
+      return prev && olderPrescriptions.some((item) => item.id === prev) ? prev : '';
+    });
   }, [prescriptions]);
 
-  const latestAssessments = assessments.slice(0, 3);
-  const olderAssessments = assessments.slice(3);
-  const selectedOlderAssessment = olderAssessments.find((item) => item.id === selectedOlderAssessmentId);
+  const latestAssessment = assessments[0] ?? null;
+  const olderAssessments = assessments.slice(1);
+  const selectedOlderAssessment = olderAssessments.find((item) => item.id === selectedOlderAssessmentId) ?? null;
 
-  const latestPrescriptions = prescriptions.slice(0, 3);
-  const olderPrescriptions = prescriptions.slice(3);
-  const selectedOlderPrescription = olderPrescriptions.find((item) => item.id === selectedOlderPrescriptionId);
+  const latestPrescription = prescriptions[0] ?? null;
+  const olderPrescriptions = prescriptions.slice(1);
+  const selectedOlderPrescription =
+    olderPrescriptions.find((item) => item.id === selectedOlderPrescriptionId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -278,9 +271,7 @@ export default function HistoryPage() {
           <p className="text-sm text-gray-300">保存された回答はまだありません。</p>
         ) : (
           <div className="space-y-4">
-            {latestAssessments.map((item) => (
-              <AssessmentCard key={item.id} item={item} />
-            ))}
+            {latestAssessment ? <AssessmentCard key={latestAssessment.id} item={latestAssessment} /> : null}
             {olderAssessments.length > 0 && (
               <>
                 <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
@@ -296,6 +287,7 @@ export default function HistoryPage() {
                     value={selectedOlderAssessmentId}
                     onChange={(event) => setSelectedOlderAssessmentId(event.target.value)}
                   >
+                    <option value="">過去の回答を選択</option>
                     {olderAssessments.map((item) => {
                       const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
                       return (
@@ -325,9 +317,9 @@ export default function HistoryPage() {
           <p className="text-sm text-gray-300">保存されたフィードバックはまだありません。</p>
         ) : (
           <div className="space-y-4">
-            {latestPrescriptions.map((item) => (
-              <PrescriptionCard key={item.id} item={item} />
-            ))}
+            {latestPrescription ? (
+              <PrescriptionCard key={latestPrescription.id} item={latestPrescription} />
+            ) : null}
             {olderPrescriptions.length > 0 && (
               <>
                 <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
@@ -343,6 +335,7 @@ export default function HistoryPage() {
                     value={selectedOlderPrescriptionId}
                     onChange={(event) => setSelectedOlderPrescriptionId(event.target.value)}
                   >
+                    <option value="">過去のフィードバックを選択</option>
                     {olderPrescriptions.map((item) => {
                       const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
                       return (
