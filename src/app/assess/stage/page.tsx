@@ -118,18 +118,6 @@ export default function StagePage() {
     [setAssessmentStage],
   );
 
-  const handleNextClick = useCallback(() => {
-    if (!stage) {
-      setStageError('ステージを選択してください。');
-      return;
-    }
-
-    setStageError(null);
-    persistStage(stage);
-    setAssessmentStage(stage);
-    router.push(nextPath);
-  }, [nextPath, router, setAssessmentStage, stage]);
-
   const restartToken = searchParams.get('restart');
   const searchParamsString = searchParams.toString();
 
@@ -148,6 +136,18 @@ export default function StagePage() {
     () => `/assess/stage${sanitizedQuery ? `?${sanitizedQuery}` : ''}`,
     [sanitizedQuery],
   );
+
+  const handleNextClick = useCallback(() => {
+    if (!stage) {
+      setStageError('ステージを選択してください。');
+      return;
+    }
+
+    setStageError(null);
+    persistStage(stage);
+    setAssessmentStage(stage);
+    router.push(nextPath);
+  }, [nextPath, router, setAssessmentStage, stage]);
 
   useEffect(() => {
     if (!restartToken) return;
