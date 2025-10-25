@@ -1,6 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
-import { auth } from '@/lib/firebaseClient';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null); setLoading(true);
     try {
+      const auth = getFirebaseAuth();
+
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
