@@ -1,0 +1,595 @@
+{
+  "bands": {
+    "RISCI": {
+      "stress": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "OK",
+            "range": [
+              3,
+              6
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              7,
+              12
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "ATTN",
+            "range": [
+              13,
+              15
+            ]
+          }
+        ],
+        "prescription_collapsed": {
+          "LOW": "OK",
+          "MID": "OK",
+          "HIGH": "ATTN"
+        }
+      },
+      "coping": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              3,
+              6
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              7,
+              11
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              12,
+              15
+            ]
+          }
+        ],
+        "prescription_collapsed": {
+          "LOW": "ATTN",
+          "MID": "OK",
+          "HIGH": "OK"
+        }
+      }
+    },
+    "SMA": {
+      "planning": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              2,
+              5
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              6,
+              8
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              9,
+              10
+            ]
+          }
+        ]
+      },
+      "reframing": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              2,
+              6
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              7,
+              9
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              10,
+              10
+            ]
+          }
+        ]
+      },
+      "healthy_activity": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              2,
+              5
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              6,
+              8
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              9,
+              10
+            ]
+          }
+        ]
+      }
+    },
+    "PSSM": {
+      "self_efficacy": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              5,
+              10
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              11,
+              16
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              17,
+              25
+            ]
+          }
+        ]
+      }
+    },
+    "PDSM": {
+      "pros": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "LOW",
+            "range": [
+              3,
+              11
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "HIGH",
+            "range": [
+              12,
+              15
+            ]
+          }
+        ]
+      },
+      "cons": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "LOW",
+            "range": [
+              3,
+              7
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "HIGH",
+            "range": [
+              8,
+              15
+            ]
+          }
+        ]
+      }
+    },
+    "PPSM": {
+      "experiential": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              5,
+              10
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              11,
+              16
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              17,
+              25
+            ]
+          }
+        ]
+      },
+      "behavioral": {
+        "banding": [
+          {
+            "id": "LOW",
+            "label": "ATTN",
+            "range": [
+              5,
+              10
+            ]
+          },
+          {
+            "id": "MID",
+            "label": "OK",
+            "range": [
+              11,
+              16
+            ]
+          },
+          {
+            "id": "HIGH",
+            "label": "OK",
+            "range": [
+              17,
+              25
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "messages": {
+    "HEADER.STAGE": [
+      {
+        "id": "HEADER.STAGE",
+        "template": {
+          "title": "現在のステージ：{{stage_label}}",
+          "body": "ここから2週間の現実的な一歩を一緒に整えましょう。"
+        }
+      }
+    ],
+    "DB.MATRIX": [
+      {
+        "id": "DB.PROS_LOW.CONS_LOW",
+        "bands": {
+          "pros": "LOW",
+          "cons": "LOW"
+        },
+        "template": {
+          "title": "Pros/Consとも低め",
+          "body": "良い点・不安点をまだ検討中です。意味づけを広げる小課題から。"
+        }
+      },
+      {
+        "id": "DB.PROS_HIGH.CONS_LOW",
+        "bands": {
+          "pros": "HIGH",
+          "cons": "LOW"
+        },
+        "template": {
+          "title": "進む準備OK",
+          "body": "小さな実行と仕組み作りを。"
+        }
+      },
+      {
+        "id": "DB.PROS_LOW.CONS_HIGH",
+        "bands": {
+          "pros": "LOW",
+          "cons": "HIGH"
+        },
+        "template": {
+          "title": "不安が強いとき",
+          "body": "不安を分解し、1週間テストで様子見。"
+        }
+      },
+      {
+        "id": "DB.PROS_HIGH.CONS_HIGH",
+        "bands": {
+          "pros": "HIGH",
+          "cons": "HIGH"
+        },
+        "template": {
+          "title": "拮抗状態",
+          "body": "影響の大きい1点から着手。"
+        }
+      }
+    ],
+    "SE.GENERIC": [
+      {
+        "id": "SE.GEN.PC_C",
+        "template": {
+          "title": "自信を育てる準備",
+          "body": "成功しやすい条件を1つ整える。"
+        }
+      }
+    ],
+    "SE.BANDED": [
+      {
+        "id": "SE.LOW",
+        "bands": {
+          "self_efficacy": "LOW"
+        },
+        "template": {
+          "title": "自信が小さめ",
+          "body": "行動を最小単位に。"
+        }
+      },
+      {
+        "id": "SE.MID",
+        "bands": {
+          "self_efficacy": "MID"
+        },
+        "template": {
+          "title": "ほどよい自信",
+          "body": "成功の再現性を上げる。"
+        }
+      },
+      {
+        "id": "SE.HIGH",
+        "bands": {
+          "self_efficacy": "HIGH"
+        },
+        "template": {
+          "title": "自信は高い",
+          "body": "過負荷に注意して維持。"
+        }
+      }
+    ],
+    "PROC.EXP": [
+      {
+        "id": "PROC.EXP.LOW",
+        "bands": {
+          "experiential": "LOW"
+        },
+        "template": {
+          "title": "気づきを増やす",
+          "body": "情報収集と意味づけ。"
+        }
+      },
+      {
+        "id": "PROC.EXP.MID",
+        "bands": {
+          "experiential": "MID"
+        },
+        "template": {
+          "title": "価値づけ",
+          "body": "良い影響を具体化。"
+        }
+      },
+      {
+        "id": "PROC.EXP.HIGH",
+        "bands": {
+          "experiential": "HIGH"
+        },
+        "template": {
+          "title": "橋渡し",
+          "body": "行動につなげる。"
+        }
+      }
+    ],
+    "PROC.EXP×BEH": [
+      {
+        "id": "PROC.EXPB.LOW_LOW",
+        "bands": {
+          "experiential": "LOW",
+          "behavioral": "LOW"
+        },
+        "template": {
+          "title": "両方弱い",
+          "body": "1分実験＋情報収集。"
+        }
+      },
+      {
+        "id": "PROC.EXPB.MID_MID",
+        "bands": {
+          "experiential": "MID",
+          "behavioral": "MID"
+        },
+        "template": {
+          "title": "バランス中",
+          "body": "小さな成功を積む。"
+        }
+      },
+      {
+        "id": "PROC.EXPB.HIGH_HIGH",
+        "bands": {
+          "experiential": "HIGH",
+          "behavioral": "HIGH"
+        },
+        "template": {
+          "title": "良好",
+          "body": "テスト実行とモニタ。"
+        }
+      }
+    ],
+    "PROC.BEH": [
+      {
+        "id": "PROC.BEH.LOW",
+        "bands": {
+          "behavioral": "LOW"
+        },
+        "template": {
+          "title": "行動を起動",
+          "body": "刺激・関係・強化のどれか1つ。"
+        }
+      },
+      {
+        "id": "PROC.BEH.MID",
+        "bands": {
+          "behavioral": "MID"
+        },
+        "template": {
+          "title": "仕組み強化",
+          "body": "トリガーとご褒美。"
+        }
+      },
+      {
+        "id": "PROC.BEH.HIGH",
+        "bands": {
+          "behavioral": "HIGH"
+        },
+        "template": {
+          "title": "維持と再発予防",
+          "body": "飽き対策と代替行動。"
+        }
+      }
+    ],
+    "RISCI.STRESS.PRESC": [
+      {
+        "id": "RISCI.STRESS.PRESC.OK",
+        "template": {
+          "title": "ストレスは許容範囲",
+          "body": "うまくいっている要因を維持。"
+        }
+      },
+      {
+        "id": "RISCI.STRESS.PRESC.ATTN",
+        "template": {
+          "title": "ストレス高め",
+          "body": "睡眠・休息・相談先の確保を優先。"
+        }
+      }
+    ],
+    "RISCI.COPING.PRESC": [
+      {
+        "id": "RISCI.COPING.PRESC.OK",
+        "template": {
+          "title": "対処は有効",
+          "body": "役立つ対処を繰り返す。"
+        }
+      },
+      {
+        "id": "RISCI.COPING.PRESC.ATTN",
+        "template": {
+          "title": "対処を増やす",
+          "body": "短時間でできる選択肢を3つ用意。"
+        }
+      }
+    ],
+    "SMA.PLANNING": [
+      {
+        "id": "SMA.PLANNING.LOW",
+        "template": {
+          "title": "計画：弱め",
+          "body": "日時固定＋リマインド。"
+        }
+      },
+      {
+        "id": "SMA.PLANNING.MID",
+        "template": {
+          "title": "計画：普通",
+          "body": "成功条件の固定化。"
+        }
+      },
+      {
+        "id": "SMA.PLANNING.HIGH",
+        "template": {
+          "title": "計画：良好",
+          "body": "回復日を計画に。"
+        }
+      }
+    ],
+    "SMA.REFRAMING": [
+      {
+        "id": "SMA.REFRAMING.LOW",
+        "template": {
+          "title": "捉え直し：弱め",
+          "body": "できている面の言語化。"
+        }
+      },
+      {
+        "id": "SMA.REFRAMING.MID",
+        "template": {
+          "title": "捉え直し：普通",
+          "body": "つまずきの意味づけ調整。"
+        }
+      },
+      {
+        "id": "SMA.REFRAMING.HIGH",
+        "template": {
+          "title": "捉え直し：良好",
+          "body": "良い捉え直しを共有。"
+        }
+      }
+    ],
+    "SMA.HEALTHY": [
+      {
+        "id": "SMA.HEALTHY.LOW",
+        "template": {
+          "title": "健康的な活動：弱め",
+          "body": "睡眠/食事/運動から1つ。"
+        }
+      },
+      {
+        "id": "SMA.HEALTHY.MID",
+        "template": {
+          "title": "健康的な活動：普通",
+          "body": "頻度を1段階上げる。"
+        }
+      },
+      {
+        "id": "SMA.HEALTHY.HIGH",
+        "template": {
+          "title": "健康的な活動：良好",
+          "body": "維持の仕組み追加。"
+        }
+      }
+    ],
+    "FOOTER.NEXT_STEP": [
+      {
+        "id": "FOOTER.NEXT_STEP",
+        "template": {
+          "title": "次の一歩",
+          "body": "上の提案から最大3つを予定化。"
+        }
+      }
+    ]
+  }
+}
