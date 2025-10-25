@@ -250,7 +250,7 @@ export default function HistoryPage() {
 
       {error && <p className="rounded-lg border border-red-800/60 bg-red-900/20 p-3 text-sm text-red-200">{error}</p>}
 
-      <section className="card space-y-4 p-6">
+      <section id="assessment-history" className="card space-y-4 p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">回答履歴</h3>
           {loading && <span className="text-xs text-gray-400">読み込み中…</span>}
@@ -297,7 +297,7 @@ export default function HistoryPage() {
         )}
       </section>
 
-      <section className="card space-y-4 p-6">
+      <section id="feedback-history" className="card space-y-4 p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">フィードバック履歴</h3>
           {loading && <span className="text-xs text-gray-400">読み込み中…</span>}

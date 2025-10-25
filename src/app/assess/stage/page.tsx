@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
-import { getFirebaseAuth } from '@/lib/firebaseClient';
 import type { Stage } from '@/lib/assessment';
 
 type StageOption = { id: Stage; label: string; helper: string };
@@ -46,11 +44,10 @@ const isStage = (value: unknown): value is Stage =>
 
 export default function StagePage() {
   const router = useRouter();
-  const { setStage: setAssessmentStage, reset } = useAssessment();
+  const searchParams = useSearchParams();
+  const { setStage: setAssessmentStage } = useAssessment();
   const [stage, setStage] = useState<Stage | null>(null);
   const [stageError, setStageError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   // 既存保存値を読み込み（任意）
   useEffect(() => {
@@ -98,53 +95,25 @@ export default function StagePage() {
     router.push('/assess/risci');
   }
 
-  function handleRestart() {
-    reset();
+  const restartToken = searchParams.get('restart');
+  const searchParamsString = searchParams.toString();
+
+  useEffect(() => {
+    if (!restartToken) return;
     setStage(null);
     setStageError(null);
-    setActionError(null);
-  }
-
-  function handleHistory() {
-    router.push('/assess/history');
-  }
-
-  async function handleLogout() {
-    setActionError(null);
-    setLoggingOut(true);
-    try {
-      const auth = getFirebaseAuth();
-      await signOut(auth);
-      router.replace('/login');
-    } catch (error) {
-      console.error('Failed to sign out', error);
-      setActionError('ログアウトに失敗しました。もう一度お試しください。');
-    } finally {
-      setLoggingOut(false);
-    }
-  }
+    const params = new URLSearchParams(searchParamsString);
+    params.delete('restart');
+    const query = params.toString();
+    router.replace(`/assess/stage${query ? `?${query}` : ''}`);
+  }, [restartToken, router, searchParamsString]);
 
   return (
     <div className="space-y-4">
       <header className="space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">ステージ分類</div>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn" onClick={handleRestart}>
-              はじめから回答する
-            </button>
-            <button className="btn" onClick={handleHistory}>
-              過去の回答とフィードバックを見る
-            </button>
-            <button className="btn" onClick={handleLogout} disabled={loggingOut}>
-              {loggingOut ? 'ログアウト中…' : 'ログアウト'}
-            </button>
-          </div>
-        </div>
+        <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
       </header>
-
-      {actionError && <p className="text-sm text-red-300">{actionError}</p>}
 
       <div className="card p-5 space-y-3">
         <div className="space-y-1">
