@@ -11,7 +11,7 @@ export default function HomePage() {
             5つの質問紙に順番に回答し、集計結果を確認したうえでフィードバックを生成できます。途中でページを移動しても回答は端末に保存されます。
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link className="btn" href="/assess/risci">
+            <Link className="btn" href="/assess/stage">
               回答をはじめる
             </Link>
             <Link className="btn" href="/assess">

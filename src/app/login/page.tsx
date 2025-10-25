@@ -1,7 +1,11 @@
 'use client';
 import { FormEvent, useState } from 'react';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from 'firebase/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -11,11 +15,14 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login'|'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const router = useRouter();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null); setLoading(true);
+    setError(null);
+    setInfo(null);
+    setLoading(true);
     try {
       const auth = getFirebaseAuth();
 
@@ -32,6 +39,22 @@ export default function LoginPage() {
     }
   }
 
+  async function handleResetPassword() {
+    setError(null);
+    setInfo(null);
+    if (!email) {
+      setError('パスワード再設定用のメールアドレスを入力してください。');
+      return;
+    }
+    try {
+      const auth = getFirebaseAuth();
+      await sendPasswordResetEmail(auth, email);
+      setInfo('パスワード再設定用のメールを送信しました。メールボックスをご確認ください。');
+    } catch (e: any) {
+      setError(e?.message ?? 'パスワード再設定メールの送信に失敗しました。');
+    }
+  }
+
   return (
     <div className="card p-6">
       <h2 className="text-xl font-bold mb-4">{mode === 'login' ? 'ログイン' : '新規登録'}</h2>
@@ -41,10 +64,16 @@ export default function LoginPage() {
         <button className="btn" disabled={loading}>{loading ? '送信中...' : (mode==='login'?'ログイン':'登録')}</button>
       </form>
       {error && <p className="text-red-300 mt-3">{error}</p>}
+      {info && <p className="text-green-300 mt-3">{info}</p>}
       <hr className="my-4"/>
       <button className="link" onClick={()=>setMode(mode==='login'?'register':'login')}>
         {mode==='login'?'アカウントを作成':'既にアカウントをお持ちの方はこちら'}
       </button>
+      {mode === 'login' && (
+        <button type="button" className="link mt-2" onClick={handleResetPassword}>
+          パスワードをお忘れの方はこちら
+        </button>
+      )}
     </div>
   );
 }
