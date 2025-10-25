@@ -6,7 +6,6 @@ import { getIdToken } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { RestartAssessmentButton } from '@/components/AssessmentActions';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
-import { STAGE_LABELS, Stage } from '@/lib/assessment';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
 
@@ -23,10 +22,23 @@ type PrescriptionResponse = {
   };
 };
 
+const HIDDEN_MESSAGE_IDS = new Set([
+  'HEADER.STAGE.C',
+  'RISCI.STRESS.MID',
+  'RISCI.COPING.MID',
+  'SMA.PLANNING.MID',
+  'SMA.REFRAMING.MID',
+  'SMA.HEALTHY.MID',
+  'SE.MID',
+  'DB.PROS_LOW.CONS_HIGH',
+  'PROC.EXP.MID',
+  'PROC.BEH.HIGH',
+]);
+
 export default function FeedbackPage() {
   const searchParams = useSearchParams();
   const reviewMode = searchParams.get('review') === '1';
-  const { data, setStage, hasHydrated } = useAssessment();
+  const { data, hasHydrated } = useAssessment();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PrescriptionResponse | null>(null);
@@ -48,10 +60,11 @@ export default function FeedbackPage() {
     });
     if (!res.ok) throw new Error(await res.text());
     const json = (await res.json()) as PrescriptionResponse;
+    const sanitizedMessages = (json.messages ?? []).filter((message) => !HIDDEN_MESSAGE_IDS.has(message.id));
 
     const ref = doc(db, 'users', user.uid, 'assessments', json.id);
 
-    let finalResult: PrescriptionResponse = json;
+    let finalResult: PrescriptionResponse = { ...json, messages: sanitizedMessages };
     let persistenceError: string | undefined;
     try {
       await setDoc(ref, { createdAt: serverTimestamp(), payload }, { merge: true });
@@ -61,15 +74,15 @@ export default function FeedbackPage() {
         {
           createdAt: serverTimestamp(),
           scores: json.scores ?? payload.scores,
-          messages: json.messages ?? [],
+          messages: sanitizedMessages,
         },
         { merge: true },
       );
-      finalResult = { ...json, persisted: true };
+      finalResult = { ...json, messages: sanitizedMessages, persisted: true };
     } catch (error) {
       console.error('Failed to persist assessment on client', error);
       persistenceError = 'フィードバックの保存に失敗しました。もう一度お試しください。';
-      finalResult = { ...json, persisted: json.persisted ?? false };
+      finalResult = { ...json, messages: sanitizedMessages, persisted: json.persisted ?? false };
     }
 
     return { result: finalResult, persistenceError };
@@ -119,37 +132,12 @@ export default function FeedbackPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-xl font-bold">フィードバック生成</h2>
-        <p className="text-sm text-gray-400">
-          集計結果をもとに処方箋を自動生成します。変容ステージを確認してください。
-        </p>
       </header>
-      <section className="card space-y-4 p-6">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-sm font-semibold">変容ステージ</label>
-          <select
-            className={`input disabled:cursor-not-allowed disabled:opacity-60${
-              reviewMode ? ' cursor-not-allowed opacity-60' : ''
-            }`}
-            value={data.stage}
-            onChange={(event) => setStage(event.target.value as Stage)}
-            disabled={reviewMode}
-          >
-            {Object.entries(STAGE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+      {reviewMode ? (
         <p className="text-xs leading-relaxed text-gray-400">
-          各質問紙の得点は自動的に集計され、サーバーで安全に処理されます。画面上には表示されません。
+          回答内容は閲覧のみ可能です。値を変更することはできません。
         </p>
-        {reviewMode ? (
-          <p className="text-xs leading-relaxed text-gray-400">
-            回答内容は閲覧のみ可能です。値を変更することはできません。
-          </p>
-        ) : null}
-      </section>
+      ) : null}
       {loading ? (
         <p className="text-sm text-gray-400">フィードバックを生成しています…</p>
       ) : null}
@@ -166,31 +154,33 @@ export default function FeedbackPage() {
             <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
               <h4 className="text-sm font-semibold text-gray-200">プロセスの評価</h4>
               <div className="grid gap-3 md:grid-cols-2">
-                {([
-                  {
-                    key: 'experiential' as const,
-                    label: PROCESS_LABELS.experiential,
-                    band: result.bands?.PPSM?.experiential,
-                  },
-                  {
-                    key: 'behavioral' as const,
-                    label: PROCESS_LABELS.behavioral,
-                    band: result.bands?.PPSM?.behavioral,
-                  },
-                ]).map((item) => {
+                {(
+                  [
+                    {
+                      key: 'experiential' as const,
+                      label: PROCESS_LABELS.experiential,
+                      band: result.bands?.PPSM?.experiential,
+                    },
+                    {
+                      key: 'behavioral' as const,
+                      label: PROCESS_LABELS.behavioral,
+                      band: result.bands?.PPSM?.behavioral,
+                    },
+                  ]
+                ).map((item) => {
                   const bandLabel = getProcessBandLabel(item.band);
-              return (
-                <div
-                  key={item.key}
-                  className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
-                >
-                  <p className="text-xs font-semibold text-gray-400">{item.label}</p>
-                  <div className="text-sm text-gray-300">
-                    {bandLabel ? `評価：${bandLabel}` : '評価：不明'}
-                  </div>
-                </div>
-              );
-            })}
+                  return (
+                    <div
+                      key={item.key}
+                      className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
+                    >
+                      <p className="text-xs font-semibold text-gray-400">{item.label}</p>
+                      <div className="text-sm text-gray-300">
+                        {bandLabel ? `評価：${bandLabel}` : '評価：不明'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {result.messages.map((message) => (
