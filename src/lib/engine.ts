@@ -67,9 +67,21 @@ export function computeBands(s: Scores) {
 type Message = { id: string; stage?: Stage[]; bands?: Record<string,string>; template: any };
 
 function pickById(id: string) {
-  const [ns, key] = id.split(':'); // optionally "NS:ID"
-  const list = (catalog as any).messages[ns] || (catalog as any).messages[id] || [];
-  return list.find((m:any)=>m.id===id) || list[0];
+  const messages = (catalog as any).messages as Record<string, Message[]>;
+  const [ns] = id.split(':');
+
+  const candidates = messages[ns] || messages[id];
+  if (candidates?.length) {
+    return candidates.find((m) => m.id === id) || candidates[0];
+  }
+
+  // Fallback: search every message group for the identifier
+  for (const group of Object.values(messages) as Message[][]) {
+    const found = group.find((m) => m.id === id);
+    if (found) return found;
+  }
+
+  throw new Error(`message ${id} not found in catalog`);
 }
 
 function filterByStage(list: Message[], stage: Stage) {
