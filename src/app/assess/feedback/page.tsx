@@ -6,7 +6,7 @@ import { getIdToken } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
 import { STAGE_LABELS, Stage, calculateScores } from '@/lib/assessment';
-import { auth, db } from '@/lib/firebaseClient';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 
 type PrescriptionResponse = {
   id: string;
@@ -38,6 +38,8 @@ export default function FeedbackPage() {
     setError(null);
     setLoading(true);
     try {
+      const auth = getFirebaseAuth();
+      const db = getFirebaseDb();
       const user = auth.currentUser;
       if (!user) throw new Error('ログインが必要です');
       const token = await getIdToken(user, true);
