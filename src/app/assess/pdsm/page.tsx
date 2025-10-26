@@ -30,7 +30,7 @@ export default function PdsmPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">利得（Pros）</h3>
           {PROS.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.pdsm.pros[index]}
@@ -44,7 +44,7 @@ export default function PdsmPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">損失（Cons）</h3>
           {CONS.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.pdsm.cons[index]}
@@ -56,12 +56,12 @@ export default function PdsmPage() {
           ))}
         </div>
       </section>
-      <div className="flex gap-2">
-        <Link className="btn" href={`/assess/ppsm${reviewQuery}`}>
-          次へ（PPSM）
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/pssm${reviewQuery}`}>
           戻る
+        </Link>
+        <Link className="btn" href={`/assess/ppsm${reviewQuery}`}>
+          次へ（PPSM）
         </Link>
       </div>
     </div>

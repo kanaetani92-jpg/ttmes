@@ -120,18 +120,27 @@ const scoreOf = (value: unknown): number => {
   return typeof parsed === 'number' ? parsed : 0;
 };
 
+const reverseScoreOf = (value: Likert5Value): number => {
+  const numeric = scoreOf(value);
+  if (numeric === 0) return 0;
+  return 6 - numeric;
+};
+
 const sum = (values: Likert5Value[]): number => values.reduce((acc, cur) => acc + scoreOf(cur), 0);
+
+const sumReversed = (values: Likert5Value[]): number =>
+  values.reduce((acc, cur) => acc + reverseScoreOf(cur), 0);
 
 export const calculateScores = (data: AssessmentData): AssessmentScores => ({
   stage: data.stage,
   risci: {
-    stress: sum(data.risci.stress),
+    stress: sumReversed(data.risci.stress),
     coping: sum(data.risci.coping),
   },
   sma: {
     planning: sum(data.sma.planning),
     reframing: sum(data.sma.reframing),
-    healthy: sum(data.sma.healthy),
+    healthy: sumReversed(data.sma.healthy),
   },
   pssm: sum(data.pssm),
   pdsm: {

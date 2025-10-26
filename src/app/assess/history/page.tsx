@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
@@ -385,6 +386,11 @@ export default function HistoryPage() {
           </div>
         ) : null}
       </section>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <Link className="btn" href="/">
+          トップに戻る
+        </Link>
+      </div>
     </div>
   );
 }
