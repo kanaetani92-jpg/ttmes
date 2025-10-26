@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { signOut } from 'firebase/auth';
 import { useAssessment } from './AssessmentStore';
+import { WorkChat } from './WorkChat';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 type RestartAssessmentButtonProps = {
@@ -84,6 +85,7 @@ export function AssessmentActions({ showRestartButton = true }: AssessmentAction
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap justify-end gap-2">
+        <WorkChat />
         {showRestartButton ? <RestartAssessmentButton onRestart={() => setActionError(null)} /> : null}
         <Link className="btn" href="/assess/history#assessment-history">
           過去の回答
