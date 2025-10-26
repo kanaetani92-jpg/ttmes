@@ -5,7 +5,6 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { STAGE_LABELS, Stage } from '@/lib/assessment';
 import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
-import { HIDDEN_MESSAGE_IDS } from '@/lib/hiddenMessageIds';
 
 type StoredScores = {
   stage?: Stage;
@@ -154,10 +153,7 @@ const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
   ]);
   const rowsWithBand = processRows.filter((row) => !!row.band);
   const hasAnyBand = rowsWithBand.length > 0;
-  const visibleMessages = useMemo(
-    () => item.messages.filter((message) => !HIDDEN_MESSAGE_IDS.has(message.id)),
-    [item.messages],
-  );
+  const visibleMessages = useMemo(() => item.messages, [item.messages]);
 
   return (
     <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
@@ -369,24 +365,22 @@ export default function HistoryPage() {
               <p className="text-[11px] text-gray-500">選択した回答履歴とフィードバックが下に表示されます。</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-300">回答内容</h4>
-                {selectedHistoryItem?.assessment ? (
-                  <AssessmentCard item={selectedHistoryItem.assessment} />
-                ) : (
-                  <p className="text-xs text-gray-400">この履歴には回答データが見つかりませんでした。</p>
-                )}
-              </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-300">回答内容</h4>
+              {selectedHistoryItem?.assessment ? (
+                <AssessmentCard item={selectedHistoryItem.assessment} />
+              ) : (
+                <p className="text-xs text-gray-400">この履歴には回答データが見つかりませんでした。</p>
+              )}
+            </div>
 
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-300">フィードバック</h4>
-                {selectedHistoryItem?.prescription ? (
-                  <PrescriptionCard item={selectedHistoryItem.prescription} />
-                ) : (
-                  <p className="text-xs text-gray-400">この履歴にはフィードバックが保存されていません。</p>
-                )}
-              </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-300">フィードバック</h4>
+              {selectedHistoryItem?.prescription ? (
+                <PrescriptionCard item={selectedHistoryItem.prescription} />
+              ) : (
+                <p className="text-xs text-gray-400">この履歴にはフィードバックが保存されていません。</p>
+              )}
             </div>
           </div>
         ) : null}
