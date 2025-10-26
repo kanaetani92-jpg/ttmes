@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { signOut } from 'firebase/auth';
 import { useAssessment } from './AssessmentStore';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
@@ -10,9 +10,10 @@ import { getFirebaseAuth } from '@/lib/firebaseClient';
 type RestartAssessmentButtonProps = {
   className?: string;
   onRestart?: () => void;
+  children?: ReactNode;
 };
 
-export function RestartAssessmentButton({ className, onRestart }: RestartAssessmentButtonProps) {
+export function RestartAssessmentButton({ className, onRestart, children }: RestartAssessmentButtonProps) {
   const router = useRouter();
   const { reset } = useAssessment();
 
@@ -25,7 +26,7 @@ export function RestartAssessmentButton({ className, onRestart }: RestartAssessm
 
   return (
     <button type="button" className={className ? `btn ${className}` : 'btn'} onClick={handleRestart}>
-      はじめから回答する
+      {children ?? 'はじめから回答する'}
     </button>
   );
 }
@@ -66,7 +67,11 @@ export function LogoutButton({ className, onError }: LogoutButtonProps) {
   );
 }
 
-export function AssessmentActions() {
+type AssessmentActionsProps = {
+  showRestartButton?: boolean;
+};
+
+export function AssessmentActions({ showRestartButton = true }: AssessmentActionsProps) {
   const pathname = usePathname();
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -79,7 +84,7 @@ export function AssessmentActions() {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap justify-end gap-2">
-        <RestartAssessmentButton onRestart={() => setActionError(null)} />
+        {showRestartButton ? <RestartAssessmentButton onRestart={() => setActionError(null)} /> : null}
         <Link className="btn" href="/assess/history#assessment-history">
           過去の回答
         </Link>
