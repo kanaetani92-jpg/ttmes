@@ -69,9 +69,10 @@ export function LogoutButton({ className, onError }: LogoutButtonProps) {
 
 type AssessmentActionsProps = {
   showRestartButton?: boolean;
+  showWorkLink?: boolean;
 };
 
-export function AssessmentActions({ showRestartButton = true }: AssessmentActionsProps) {
+export function AssessmentActions({ showRestartButton = true, showWorkLink = true }: AssessmentActionsProps) {
   const pathname = usePathname();
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -84,9 +85,11 @@ export function AssessmentActions({ showRestartButton = true }: AssessmentAction
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap justify-end gap-2">
-        <Link className="btn" href="/work">
-          ワーク画面へ
-        </Link>
+        {showWorkLink ? (
+          <Link className="btn" href="/work">
+            ワーク画面へ
+          </Link>
+        ) : null}
         {showRestartButton ? <RestartAssessmentButton onRestart={() => setActionError(null)} /> : null}
         <Link className="btn" href="/assess/history#assessment-history">
           過去の回答
