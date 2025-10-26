@@ -31,7 +31,7 @@ export default function SmaPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">計画</h3>
           {PLAN.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.planning[index]}
@@ -45,7 +45,7 @@ export default function SmaPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">リフレーミング</h3>
           {REFRAME.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.reframing[index]}
@@ -59,7 +59,7 @@ export default function SmaPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">健康的な活動</h3>
           {HEALTHY.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.healthy[index]}
@@ -71,12 +71,12 @@ export default function SmaPage() {
           ))}
         </div>
       </section>
-      <div className="flex gap-2">
-        <Link className="btn" href={`/assess/pssm${reviewQuery}`}>
-          次へ（PSSM）
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/risci${reviewQuery}`}>
           戻る
+        </Link>
+        <Link className="btn" href={`/assess/pssm${reviewQuery}`}>
+          次へ（PSSM）
         </Link>
       </div>
     </div>

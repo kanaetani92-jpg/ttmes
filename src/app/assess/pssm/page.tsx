@@ -33,7 +33,7 @@ export default function PssmPage() {
       </header>
       <section className="card space-y-4 p-6">
         {QUESTIONS.map((question, index) => (
-          <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+          <div key={question} className="grid items-start gap-3 md:grid-cols-2">
             <p className="text-sm leading-relaxed">{question}</p>
             <Likert5
               value={data.pssm[index]}
@@ -44,12 +44,12 @@ export default function PssmPage() {
           </div>
         ))}
       </section>
-      <div className="flex gap-2">
-        <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
-          次へ（PDSM）
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/sma${reviewQuery}`}>
           戻る
+        </Link>
+        <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
+          次へ（PDSM）
         </Link>
       </div>
     </div>

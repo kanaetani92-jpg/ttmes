@@ -191,7 +191,7 @@ export default function StagePage() {
 
         {/* ⛔️ stageErrorの表示部分を削除 */}
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <Link className="btn" href={nextPath}>
             次へ（RISCIへ進む）
           </Link>

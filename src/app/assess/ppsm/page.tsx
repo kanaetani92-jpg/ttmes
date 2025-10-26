@@ -42,7 +42,7 @@ export default function PpsmPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">体験的・認知的プロセス</h3>
           {EXP.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.ppsm.experiential[index]}
@@ -56,7 +56,7 @@ export default function PpsmPage() {
         <div className="space-y-4">
           <h3 className="font-semibold">行動的プロセス</h3>
           {BEH.map((question, index) => (
-            <div key={question} className="grid items-center gap-3 md:grid-cols-2">
+            <div key={question} className="grid items-start gap-3 md:grid-cols-2">
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.ppsm.behavioral[index]}
@@ -68,12 +68,12 @@ export default function PpsmPage() {
           ))}
         </div>
       </section>
-      <div className="flex flex-wrap gap-2">
-        <Link className="btn" href={`/assess/feedback${reviewQuery}`}>
-          次へ（フィードバック）
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
           戻る
+        </Link>
+        <Link className="btn" href={`/assess/feedback${reviewQuery}`}>
+          次へ（フィードバック）
         </Link>
       </div>
     </div>

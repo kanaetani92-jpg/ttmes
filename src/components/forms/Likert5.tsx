@@ -11,7 +11,7 @@ type Props = {
 
 export function Likert5({ value, onChange, disabled, labels }: Props) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 md:flex-col md:items-stretch">
       {[1, 2, 3, 4, 5].map((v, index) => (
         <button
           key={v}
@@ -28,7 +28,7 @@ export function Likert5({ value, onChange, disabled, labels }: Props) {
               : value === v
                 ? ''
                 : 'hover:border-blue-400/60'
-          }`}
+          } md:w-full`}
           onClick={() => {
             if (disabled) return;
             onChange(v as Likert5);

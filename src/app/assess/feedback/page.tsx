@@ -158,7 +158,7 @@ export default function FeedbackPage() {
           </div>
         </section>
       )}
-      <div className="flex flex-wrap justify-end gap-2 pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-6">
         <RestartAssessmentButton />
         <Link className="btn" href="/">
           トップに戻る
