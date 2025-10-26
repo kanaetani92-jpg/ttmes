@@ -139,9 +139,8 @@ export default function StagePage() {
   );
 
   const handleNextClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
+    (_event: MouseEvent<HTMLAnchorElement>) => {
       if (!stage) {
-        event.preventDefault();
         setStageError('ステージを選択してください。');
         return;
       }
