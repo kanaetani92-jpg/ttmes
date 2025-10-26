@@ -151,31 +151,28 @@ const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
       band: item.bands?.PPSM?.behavioral,
     },
   ]);
-  const hasAnyBand = processRows.some((row) => !!row.band);
+  const rowsWithBand = processRows.filter((row) => !!row.band);
+  const hasAnyBand = rowsWithBand.length > 0;
   return (
     <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
         <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
       </header>
-      {processRows.length > 0 ? (
+      {hasAnyBand ? (
         <div className="space-y-2 rounded-lg border border-[#1f2549] bg-[#11163a] p-3">
           <h4 className="text-xs font-semibold text-gray-300">プロセスの評価</h4>
-          {hasAnyBand ? (
-            <div className="space-y-2">
-              {processRows.map((row) => {
-                const bandLabel = getProcessBandLabel(row.band);
-                return (
-                  <div key={row.key} className="space-y-0.5 text-xs text-gray-300">
-                    <p className="font-semibold text-gray-400">{row.label}</p>
-                    <p>{bandLabel ? `評価：${bandLabel}` : '評価：不明'}</p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">評価情報は保存されていません。</p>
-          )}
+          <div className="space-y-2">
+            {rowsWithBand.map((row) => {
+              const bandLabel = getProcessBandLabel(row.band);
+              return (
+                <div key={row.key} className="space-y-0.5 text-xs text-gray-300">
+                  <p className="font-semibold text-gray-400">{row.label}</p>
+                  <p>{bandLabel ? `評価：${bandLabel}` : '評価：不明'}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : null}
       <div className="space-y-3">
