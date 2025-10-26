@@ -137,28 +137,9 @@ export default function StagePage() {
     () => `/assess/stage${sanitizedQuery ? `?${sanitizedQuery}` : ''}`,
     [sanitizedQuery],
   );
-
-  // ⭐️ 修正された handleNextClick: デフォルト遷移をキャンセルし、router.push()で遷移を強制
-  const handleNextClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      // 1. デフォルトの遷移をキャンセル
-      event.preventDefault();
-
-      if (!stage) {
-        setStageError('ステージを選択してください。');
-        return;
-      }
-
-      // 2. 状態を更新
-      setStageError(null);
-      persistStage(stage);
-      setAssessmentStage(stage);
-
-      // 3. プログラムによる強制遷移
-      router.push(nextPath);
-    },
-    [setAssessmentStage, stage, router, nextPath],
-  );
+  
+  // ⛔️ handleNextClick関数を削除
+  // RisciPageと同様にLinkのデフォルト動作に依存するため、カスタムハンドラは不要
 
   useEffect(() => {
     if (!restartToken) return;
@@ -211,11 +192,12 @@ export default function StagePage() {
           ))}
         </div>
 
-        {stageError && <div className="text-sm text-red-300">{stageError}</div>}
+        {/* ⚠️ バリデーションを削除したため、stageErrorの表示も不要 */}
+        {/* {stageError && <div className="text-sm text-red-300">{stageError}</div>} */}
 
         <div className="flex gap-2">
-          {/* ⭐️ onClickで修正後の handleNextClick を使用し、遷移を強制 */}
-          <Link className="btn" href={nextPath} onClick={handleNextClick}>
+          {/* ✅ onClickを削除し、RisciPageと同様にLinkのhrefによる純粋な遷移に */}
+          <Link className="btn" href={nextPath}>
             次へ（RISCIへ進む）
           </Link>
         </div>
