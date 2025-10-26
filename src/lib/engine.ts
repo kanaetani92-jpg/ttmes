@@ -17,9 +17,16 @@ type Banding = { id: string, label: string, range: [number, number] };
 function inRange(v: number, r: [number, number]) { return v >= r[0] && v <= r[1]; }
 
 function bandOf(bands: Banding[], v: number): string {
-  const b = bands.find(b => inRange(v, b.range));
-  if (!b) throw new Error(`value ${v} out of range`);
-  return b.id;
+  const direct = bands.find(b => inRange(v, b.range));
+  if (direct) return direct.id;
+
+  if (!bands.length) throw new Error('no bands defined');
+
+  if (v < bands[0].range[0]) {
+    return bands[0].id;
+  }
+
+  return bands[bands.length - 1].id;
 }
 
 export function computeBands(s: Scores) {
