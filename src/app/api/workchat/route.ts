@@ -14,7 +14,7 @@ const payloadSchema = z.object({
   assessment: z.any(),
 });
 
-const defaultModelId = 'gemini-1.5-pro';
+const defaultModelId = 'gemini-2.0-flash';
 
 const buildContextPayload = (assessment: AssessmentData) => {
   const { skeleton, bandLabels, scores, stageName } = buildWorkSkeleton(assessment);
@@ -73,8 +73,10 @@ export async function POST(request: NextRequest) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  const modelId = process.env.GEMINI_MODEL_ID || process.env.MODEL_NAME || defaultModelId;
+
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL_ID || defaultModelId,
+    model: modelId,
     systemInstruction: WORK_SYSTEM_PROMPT,
   });
 
