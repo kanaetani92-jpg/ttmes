@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
-const PLAN = ['実行する日時を決めていた', '事前準備（道具や場所）を整えていた'];
-const REFRAME = ['うまくいかない時に見方を切り替えた', 'できている面を意識できた'];
-const HEALTHY = ['睡眠・休息を確保した', '軽い運動やストレッチをした'];
+const PLAN = ['早め早めにやるべきことを片付けた', '計画的に自分の時間を使った'];
+const REFRAME = ['うまくいかないような場面でも、努めて楽しくした', '仕事が続いた後は、自分にご褒美をあげた'];
+const HEALTHY = ['いつもより身体を動かすことをひかえめにした', '負担がかかる定期的な運動をさぼった'];
 
 export default function SmaPage() {
   const searchParams = useSearchParams();

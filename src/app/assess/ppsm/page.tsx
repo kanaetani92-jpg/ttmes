@@ -5,19 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
-const EXP = [
-  '健康的なやり方について情報を求めた',
-  '話し合える雰囲気に気づいた',
-  'ストレスによる問題を身をもって感じた',
-  '健康的に対処できたとき自分を好ましく感じた',
-  '自分のストレスが周囲へ与える影響を考えた',
-];
 const BEH = [
-  '健康的に対処することを自分に誓った',
-  'ストレスを感じたとき健康的な活動に切り替えた',
-  '対処についてコメントしてくれる人がいた',
-  '準備や予定を立てた',
-  'できたときにごほうびを用意した',
+  'ストレスを感じ始めたときは、リラックスするために休憩をとった',
+  'ストレスを感じたとき、何か楽しみが持てるようなこと（例えば、好きなTV番組を録画するなど）を日頃から用意しておいた',
+  '自分へのストレスが他の人にどのような影響を与えているのか、しっかり考えた',
+  '私がストレスをどのようにコントロールしているかについて、コメントしてくれる人が少なくともひとりはいた',
+];
+const EXP = [
+  'ストレスを感じた時にもっと肯定的に考えることを思い出させるものを持っていた',
+  'ストレスマネジメントのやり方を自由に話し合える雰囲気になっていることに気づいた',
+  'ストレスを感じ始めたとき、楽しめる健康的な活動に切りかえた',
+  'ストレスによる問題をひどく身をもって感じた',
 ];
 
 export default function PpsmPage() {
@@ -28,7 +26,7 @@ export default function PpsmPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-xl font-bold">PPSM（変容プロセス：高次2因子）</h2>
+        <h2 className="text-xl font-bold">PPSM（変容プロセス；8項目版）</h2>
         <p className="text-sm text-gray-400">対象期間：<b>最近30日以内（今日を含む）</b>（その間の頻度）</p>
       </header>
       <section className="card space-y-5 p-6">

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
-const PROS = ['健康や気分に良い影響がある', '達成感や自己効力感が高まる', '生活リズムが整う'];
+const PROS = ['自分をもっと良く思える', '自分の生活をもっとコントロールできる', '人間関係がもっと良くなる'];
 const CONS = ['時間が足りなくなる', '毎日の生活に支障をきたす', '費用がかかる'];
 
 export default function PdsmPage() {

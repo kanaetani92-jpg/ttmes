@@ -27,7 +27,7 @@ export const createDefaultAssessment = (): AssessmentData => ({
   sma: { planning: [null, null], reframing: [null, null], healthy: [null, null] },
   pssm: [null, null, null, null, null],
   pdsm: { pros: [null, null, null], cons: [null, null, null] },
-  ppsm: { experiential: [null, null, null, null, null], behavioral: [null, null, null, null, null] },
+  ppsm: { experiential: [null, null, null, null], behavioral: [null, null, null, null] },
 });
 
 export const cloneAssessmentData = (data: AssessmentData): AssessmentData => ({
