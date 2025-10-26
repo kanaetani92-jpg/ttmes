@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react'; // type MouseEvent を削除
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
@@ -96,8 +96,8 @@ export default function StagePage() {
   const searchParams = useSearchParams();
   const { setStage: setAssessmentStage } = useAssessment();
   const [stage, setStage] = useState<Stage | null>(null);
-  const [stageError, setStageError] = useState<string | null>(null);
-
+  // ⛔️ stageError state を削除
+  
   // 既存保存値を読み込み（任意）
   useEffect(() => {
     const storedStage = loadStoredStage();
@@ -113,7 +113,7 @@ export default function StagePage() {
     (nextStage: Stage) => {
       setStage(nextStage);
       setAssessmentStage(nextStage);
-      setStageError(null);
+      // ⛔️ setStageError(null) を削除
       persistStage(nextStage);
     },
     [setAssessmentStage],
@@ -137,14 +137,11 @@ export default function StagePage() {
     () => `/assess/stage${sanitizedQuery ? `?${sanitizedQuery}` : ''}`,
     [sanitizedQuery],
   );
-  
-  // ⛔️ handleNextClick関数を削除
-  // RisciPageと同様にLinkのデフォルト動作に依存するため、カスタムハンドラは不要
 
   useEffect(() => {
     if (!restartToken) return;
     setStage(null);
-    setStageError(null);
+    // ⛔️ setStageError(null) を削除
     clearStoredStage();
     router.replace(restartPath);
   }, [restartPath, restartToken, router]);
@@ -192,11 +189,9 @@ export default function StagePage() {
           ))}
         </div>
 
-        {/* ⚠️ バリデーションを削除したため、stageErrorの表示も不要 */}
-        {/* {stageError && <div className="text-sm text-red-300">{stageError}</div>} */}
+        {/* ⛔️ stageErrorの表示部分を削除 */}
 
         <div className="flex gap-2">
-          {/* ✅ onClickを削除し、RisciPageと同様にLinkのhrefによる純粋な遷移に */}
           <Link className="btn" href={nextPath}>
             次へ（RISCIへ進む）
           </Link>
