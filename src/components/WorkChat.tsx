@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useAssessment } from './AssessmentStore';
@@ -56,10 +57,11 @@ export function WorkChat() {
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    scrollRef.current.scrollTop = 0;
   }, [messages]);
 
   const trimmedInput = useMemo(() => input.trim(), [input]);
+  const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
   const canSend = trimmedInput.length > 0 && !loading && hasHydrated;
   const remaining = MAX_MESSAGE_LENGTH - input.length;
 
@@ -139,23 +141,23 @@ export function WorkChat() {
 
   return (
     <section className="card flex h-[min(80vh,600px)] flex-col space-y-4 p-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-bold text-white">ワーク</h2>
-        <p className="text-sm text-gray-400">Geminiコーチが質問紙の回答に基づいて提案します。</p>
-        <p className="text-xs text-gray-500">
-          {context.stage ? `ステージ: ${context.stage}` : '質問紙の回答に基づく提案を表示します。'}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-white">ワーク</h2>
+          {context.stage ? (
+            <p className="text-xs text-gray-500">{`ステージ: ${context.stage}`}</p>
+          ) : null}
+        </div>
+        <Link href="/" className="btn-secondary whitespace-nowrap text-xs sm:text-sm">
+          トップに戻る
+        </Link>
       </header>
       <div
         ref={scrollRef}
         className="flex-1 space-y-3 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1026] p-4"
       >
-        {messages.length === 0 ? (
-          <p className="text-sm text-gray-400">
-            質問や希望を入力すると、Geminiが最新の骨子から実行しやすい提案を整えます。
-          </p>
-        ) : (
-          messages.map((message) => (
+        {displayedMessages.length === 0 ? null : (
+          displayedMessages.map((message) => (
             <div
               key={message.id}
               className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}

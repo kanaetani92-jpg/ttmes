@@ -152,7 +152,7 @@ export default function StagePage() {
         <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">
           ステージ分類
         </div>
-        <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
+        <h2 className="text-xl font-bold">変容ステージ</h2>
       </header>
 
       <div className="card p-5 space-y-3">
