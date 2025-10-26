@@ -1,9 +1,9 @@
 'use client';
 
-import type { Likert5 } from '@/lib/assessment';
+import type { Likert5, Likert5Value } from '@/lib/assessment';
 
 type Props = {
-  value: Likert5;
+  value: Likert5Value;
   onChange: (value: Likert5) => void;
   disabled?: boolean;
 };

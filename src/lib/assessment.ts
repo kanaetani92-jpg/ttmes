@@ -1,13 +1,15 @@
 export type Likert5 = 1 | 2 | 3 | 4 | 5;
 export type Stage = 'PC' | 'C' | 'PR' | 'A' | 'M';
 
+export type Likert5Value = Likert5 | null;
+
 export type AssessmentData = {
   stage: Stage;
-  risci: { stress: Likert5[]; coping: Likert5[] };
-  sma: { planning: Likert5[]; reframing: Likert5[]; healthy: Likert5[] };
-  pssm: Likert5[];
-  pdsm: { pros: Likert5[]; cons: Likert5[] };
-  ppsm: { experiential: Likert5[]; behavioral: Likert5[] };
+  risci: { stress: Likert5Value[]; coping: Likert5Value[] };
+  sma: { planning: Likert5Value[]; reframing: Likert5Value[]; healthy: Likert5Value[] };
+  pssm: Likert5Value[];
+  pdsm: { pros: Likert5Value[]; cons: Likert5Value[] };
+  ppsm: { experiential: Likert5Value[]; behavioral: Likert5Value[] };
 };
 
 export type AssessmentScores = {
@@ -21,48 +23,49 @@ export type AssessmentScores = {
 
 export const createDefaultAssessment = (): AssessmentData => ({
   stage: 'C',
-  risci: { stress: [3, 3, 3], coping: [3, 3, 3] },
-  sma: { planning: [3, 3], reframing: [3, 3], healthy: [3, 3] },
-  pssm: [3, 3, 3, 3, 3],
-  pdsm: { pros: [3, 3, 3], cons: [3, 3, 3] },
-  ppsm: { experiential: [3, 3, 3, 3, 3], behavioral: [3, 3, 3, 3, 3] },
+  risci: { stress: [null, null, null], coping: [null, null, null] },
+  sma: { planning: [null, null], reframing: [null, null], healthy: [null, null] },
+  pssm: [null, null, null, null, null],
+  pdsm: { pros: [null, null, null], cons: [null, null, null] },
+  ppsm: { experiential: [null, null, null, null, null], behavioral: [null, null, null, null, null] },
 });
 
 export const cloneAssessmentData = (data: AssessmentData): AssessmentData => ({
   stage: data.stage,
   risci: {
-    stress: [...data.risci.stress] as Likert5[],
-    coping: [...data.risci.coping] as Likert5[],
+    stress: [...data.risci.stress] as Likert5Value[],
+    coping: [...data.risci.coping] as Likert5Value[],
   },
   sma: {
-    planning: [...data.sma.planning] as Likert5[],
-    reframing: [...data.sma.reframing] as Likert5[],
-    healthy: [...data.sma.healthy] as Likert5[],
+    planning: [...data.sma.planning] as Likert5Value[],
+    reframing: [...data.sma.reframing] as Likert5Value[],
+    healthy: [...data.sma.healthy] as Likert5Value[],
   },
-  pssm: [...data.pssm] as Likert5[],
+  pssm: [...data.pssm] as Likert5Value[],
   pdsm: {
-    pros: [...data.pdsm.pros] as Likert5[],
-    cons: [...data.pdsm.cons] as Likert5[],
+    pros: [...data.pdsm.pros] as Likert5Value[],
+    cons: [...data.pdsm.cons] as Likert5Value[],
   },
   ppsm: {
-    experiential: [...data.ppsm.experiential] as Likert5[],
-    behavioral: [...data.ppsm.behavioral] as Likert5[],
+    experiential: [...data.ppsm.experiential] as Likert5Value[],
+    behavioral: [...data.ppsm.behavioral] as Likert5Value[],
   },
 });
 
-const toLikert5 = (value: number, fallback: Likert5 = 3): Likert5 => {
-  if (Number.isFinite(value)) {
-    const clamped = Math.round(value);
+const toLikert5 = (value: unknown, fallback: Likert5Value = null): Likert5Value => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (Number.isFinite(numeric)) {
+    const clamped = Math.round(numeric);
     if (clamped >= 1 && clamped <= 5) return clamped as Likert5;
   }
   return fallback;
 };
 
-const normalizeLikertArray = (input: unknown, length: number, fallback: Likert5[]): Likert5[] => {
-  if (!Array.isArray(input)) return [...fallback] as Likert5[];
-  const result: Likert5[] = [];
+const normalizeLikertArray = (input: unknown, length: number, fallback: Likert5Value[]): Likert5Value[] => {
+  if (!Array.isArray(input)) return [...fallback] as Likert5Value[];
+  const result: Likert5Value[] = [];
   for (let i = 0; i < length; i += 1) {
-    result.push(toLikert5(Number(input[i]), fallback[i]));
+    result.push(toLikert5(input[i], fallback[i]));
   }
   return result;
 };
@@ -109,7 +112,12 @@ export const normalizeAssessmentData = (raw: unknown): AssessmentData => {
   };
 };
 
-const sum = (values: Likert5[]): number => values.reduce((acc, cur) => acc + cur, 0);
+const scoreOf = (value: unknown): number => {
+  const parsed = toLikert5(value, null);
+  return typeof parsed === 'number' ? parsed : 0;
+};
+
+const sum = (values: Likert5Value[]): number => values.reduce((acc, cur) => acc + scoreOf(cur), 0);
 
 export const calculateScores = (data: AssessmentData): AssessmentScores => ({
   stage: data.stage,
