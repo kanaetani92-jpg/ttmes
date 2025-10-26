@@ -3,11 +3,13 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useAssessment } from './AssessmentStore';
+import { WorkPlanMessage, type WorkPlan } from './WorkPlanMessage';
 
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  plan?: WorkPlan;
 };
 
 type ChatContext = {
@@ -17,6 +19,31 @@ type ChatContext = {
 
 const createMessageId = () => crypto.randomUUID();
 const MAX_MESSAGE_LENGTH = 5000;
+
+const parseWorkPlan = (reply: string): WorkPlan | null => {
+  try {
+    const parsed = JSON.parse(reply);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    if (typeof parsed.intro !== 'string') {
+      return null;
+    }
+
+    const today = (parsed as any).today_action;
+    if (!today || typeof today !== 'object') {
+      return null;
+    }
+    if (typeof today.title !== 'string' || !Array.isArray(today.steps)) {
+      return null;
+    }
+
+    return parsed as WorkPlan;
+  } catch (error) {
+    return null;
+  }
+};
 
 export function WorkChat() {
   const { data, hasHydrated } = useAssessment();
@@ -73,7 +100,8 @@ export function WorkChat() {
       }
 
       const json = (await res.json()) as { reply: string; stage?: string; bands?: Record<string, unknown> };
-      appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply });
+      const plan = parseWorkPlan(json.reply.trim());
+      appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply, plan });
       setContext({ stage: json.stage, bands: json.bands });
     } catch (err: any) {
       console.error(err);
@@ -138,7 +166,11 @@ export function WorkChat() {
                   message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-[#151b39] text-gray-100',
                 )}
               >
-                {message.content}
+                {message.role === 'assistant' && message.plan ? (
+                  <WorkPlanMessage plan={message.plan} />
+                ) : (
+                  message.content
+                )}
               </div>
             </div>
           ))
