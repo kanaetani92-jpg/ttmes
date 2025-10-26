@@ -8,6 +8,13 @@ import { Likert5 } from '@/components/forms/Likert5';
 const PLAN = ['早め早めにやるべきことを片付けた', '計画的に自分の時間を使った'];
 const REFRAME = ['うまくいかないような場面でも、努めて楽しくした', '仕事が続いた後は、自分にご褒美をあげた'];
 const HEALTHY = ['いつもより身体を動かすことをひかえめにした', '負担がかかる定期的な運動をさぼった'];
+const SMA_CHOICES = [
+  '1. 決してなかった',
+  '2. あまりなかった',
+  '3. ときどきあった',
+  '4. よくあった',
+  '5. 非常によくあった',
+];
 
 export default function SmaPage() {
   const searchParams = useSearchParams();
@@ -30,6 +37,7 @@ export default function SmaPage() {
                 value={data.sma.planning[index]}
                 onChange={(v) => setLikert('sma.planning', index, v)}
                 disabled={reviewMode}
+                labels={SMA_CHOICES}
               />
             </div>
           ))}
@@ -43,6 +51,7 @@ export default function SmaPage() {
                 value={data.sma.reframing[index]}
                 onChange={(v) => setLikert('sma.reframing', index, v)}
                 disabled={reviewMode}
+                labels={SMA_CHOICES}
               />
             </div>
           ))}
@@ -56,6 +65,7 @@ export default function SmaPage() {
                 value={data.sma.healthy[index]}
                 onChange={(v) => setLikert('sma.healthy', index, v)}
                 disabled={reviewMode}
+                labels={SMA_CHOICES}
               />
             </div>
           ))}

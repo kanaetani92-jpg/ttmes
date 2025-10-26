@@ -7,6 +7,13 @@ import { Likert5 } from '@/components/forms/Likert5';
 
 const PROS = ['自分をもっと良く思える', '自分の生活をもっとコントロールできる', '人間関係がもっと良くなる'];
 const CONS = ['時間が足りなくなる', '毎日の生活に支障をきたす', '費用がかかる'];
+const PDSM_CHOICES = [
+  '1. まったく重要でない',
+  '2. あまり重要でない',
+  '3. 少し重要である',
+  '4. かなり重要である',
+  '5. 非常に重要である',
+];
 
 export default function PdsmPage() {
   const searchParams = useSearchParams();
@@ -29,6 +36,7 @@ export default function PdsmPage() {
                 value={data.pdsm.pros[index]}
                 onChange={(v) => setLikert('pdsm.pros', index, v)}
                 disabled={reviewMode}
+                labels={PDSM_CHOICES}
               />
             </div>
           ))}
@@ -42,6 +50,7 @@ export default function PdsmPage() {
                 value={data.pdsm.cons[index]}
                 onChange={(v) => setLikert('pdsm.cons', index, v)}
                 disabled={reviewMode}
+                labels={PDSM_CHOICES}
               />
             </div>
           ))}
