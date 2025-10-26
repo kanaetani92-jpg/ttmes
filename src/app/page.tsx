@@ -13,8 +13,9 @@ export default function HomePage() {
             <p className="text-sm text-gray-300">
               5つの質問紙に順番に回答し、集計結果を確認したうえでフィードバックを生成できます。途中でページを移動しても回答は端末に保存されます。
             </p>
+            <p className="text-sm font-semibold text-white">回答をはじめる</p>
             <div className="flex flex-wrap gap-3">
-              <RestartAssessmentButton>回答をはじめる</RestartAssessmentButton>
+              <RestartAssessmentButton>ワークを始める</RestartAssessmentButton>
             </div>
           </section>
         </div>
