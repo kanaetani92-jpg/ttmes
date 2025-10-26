@@ -5,6 +5,7 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { STAGE_LABELS, Stage } from '@/lib/assessment';
 import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
+import { HIDDEN_MESSAGE_IDS } from '@/lib/hiddenMessageIds';
 
 type StoredScores = {
   stage?: Stage;
@@ -153,6 +154,11 @@ const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
   ]);
   const rowsWithBand = processRows.filter((row) => !!row.band);
   const hasAnyBand = rowsWithBand.length > 0;
+  const visibleMessages = useMemo(
+    () => item.messages.filter((message) => !HIDDEN_MESSAGE_IDS.has(message.id)),
+    [item.messages],
+  );
+
   return (
     <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
@@ -176,10 +182,10 @@ const PrescriptionCard = ({ item }: { item: PrescriptionHistory }) => {
         </div>
       ) : null}
       <div className="space-y-3">
-        {item.messages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <p className="text-xs text-gray-400">メッセージは保存されていません。</p>
         ) : (
-          item.messages.map((message) => (
+          visibleMessages.map((message) => (
             <article
               key={message.id}
               className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"

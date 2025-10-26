@@ -8,6 +8,7 @@ import { RestartAssessmentButton } from '@/components/AssessmentActions';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
+import { HIDDEN_MESSAGE_IDS } from '@/lib/hiddenMessageIds';
 
 type PrescriptionResponse = {
   id: string;
@@ -21,19 +22,6 @@ type PrescriptionResponse = {
     };
   };
 };
-
-const HIDDEN_MESSAGE_IDS = new Set([
-  'HEADER.STAGE.C',
-  'RISCI.STRESS.MID',
-  'RISCI.COPING.MID',
-  'SMA.PLANNING.MID',
-  'SMA.REFRAMING.MID',
-  'SMA.HEALTHY.MID',
-  'SE.MID',
-  'DB.PROS_LOW.CONS_HIGH',
-  'PROC.EXP.MID',
-  'PROC.BEH.HIGH',
-]);
 
 export default function FeedbackPage() {
   const searchParams = useSearchParams();
