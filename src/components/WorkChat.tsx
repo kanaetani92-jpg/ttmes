@@ -76,12 +76,8 @@ export function WorkChat() {
     if (!content) return;
 
     const userMessage: ChatMessage = { id: createMessageId(), role: 'user', content };
-
-    let nextMessages: ChatMessage[] = [];
-    setMessages((prev) => {
-      nextMessages = [...prev, userMessage];
-      return nextMessages;
-    });
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInput('');
     setLoading(true);
     setError(null);
