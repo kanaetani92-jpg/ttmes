@@ -129,7 +129,7 @@ export function WorkChat() {
   if (!hasHydrated) {
     return (
       <section className="card space-y-4 p-6">
-        <h2 className="text-xl font-bold text-white">ワーク</h2>
+        <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
         <p className="text-sm text-gray-400">読み込み中です…</p>
       </section>
     );
@@ -139,7 +139,7 @@ export function WorkChat() {
     <section className="card flex h-[min(80vh,600px)] flex-col space-y-4 p-6">
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-white">ワーク</h2>
+          <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
           {context.stage ? (
             <p className="text-xs text-gray-500">{`ステージ: ${context.stage}`}</p>
           ) : null}

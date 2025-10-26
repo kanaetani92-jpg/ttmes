@@ -87,7 +87,7 @@ export function AssessmentActions({ showRestartButton = true, showWorkLink = tru
       <div className="flex flex-wrap justify-end gap-2">
         {showWorkLink ? (
           <Link className="btn" href="/work">
-            ワーク画面へ
+            ワーク画面へ（試験運用）
           </Link>
         ) : null}
         {showRestartButton ? <RestartAssessmentButton onRestart={() => setActionError(null)} /> : null}

@@ -17,7 +17,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-3 sm:w-fit">
               <RestartAssessmentButton className="w-full text-center sm:w-64">回答をはじめる</RestartAssessmentButton>
               <Link className="btn w-full text-center sm:w-64" href="/work">
-                ワーク画面へ
+                ワーク画面へ（試験運用）
               </Link>
             </div>
           </section>
