@@ -12,6 +12,13 @@ const QUESTIONS = [
   '友達や家族から嫌な思いをさせられているとき',
   '仕事や勉強の負担が多いと感じるとき',
 ];
+const PSSM_CHOICES = [
+  '1. まったくやれる自信がない',
+  '2. あまりやれる自信がない',
+  '3. すこしやれる自信がある',
+  '4. かなりやれる自信がある',
+  '5. かならずやれる自信がある',
+];
 
 export default function PssmPage() {
   const searchParams = useSearchParams();
@@ -32,6 +39,7 @@ export default function PssmPage() {
               value={data.pssm[index]}
               onChange={(v) => setLikert('pssm', index, v)}
               disabled={reviewMode}
+              labels={PSSM_CHOICES}
             />
           </div>
         ))}

@@ -15,6 +15,13 @@ const COPING = [
   '思いがけない問題に直面しても対応できた',
   '大変な状況に出会っても対応できた',
 ];
+const RISCI_CHOICES = [
+  '1. 決してなかった',
+  '2. あまりなかった',
+  '3. ときどきあった',
+  '4. よくあった',
+  '5. 非常によくあった',
+];
 
 export default function RisciPage() {
   const searchParams = useSearchParams();
@@ -37,6 +44,7 @@ export default function RisciPage() {
                 value={data.risci.stress[index]}
                 onChange={(v) => setLikert('risci.stress', index, v)}
                 disabled={reviewMode}
+                labels={RISCI_CHOICES}
               />
             </div>
           ))}
@@ -50,6 +58,7 @@ export default function RisciPage() {
                 value={data.risci.coping[index]}
                 onChange={(v) => setLikert('risci.coping', index, v)}
                 disabled={reviewMode}
+                labels={RISCI_CHOICES}
               />
             </div>
           ))}

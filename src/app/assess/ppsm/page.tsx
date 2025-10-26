@@ -5,17 +5,26 @@ import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
-const BEH = [
-  'ストレスを感じ始めたときは、リラックスするために休憩をとった',
-  'ストレスを感じたとき、何か楽しみが持てるようなこと（例えば、好きなTV番組を録画するなど）を日頃から用意しておいた',
-  '自分へのストレスが他の人にどのような影響を与えているのか、しっかり考えた',
-  '私がストレスをどのようにコントロールしているかについて、コメントしてくれる人が少なくともひとりはいた',
-];
 const EXP = [
-  'ストレスを感じた時にもっと肯定的に考えることを思い出させるものを持っていた',
-  'ストレスマネジメントのやり方を自由に話し合える雰囲気になっていることに気づいた',
-  'ストレスを感じ始めたとき、楽しめる健康的な活動に切りかえた',
+  'ストレスをコントロールする健康的なやり方についての情報を求めた',
+  'ストレスマネジメントのやり方を，自由に話し合える雰囲気になっていることに気づいた',
   'ストレスによる問題をひどく身をもって感じた',
+  '健康的なやり方でストレスをコントロールしたとき，自分を好ましく感じた',
+  '自分へのストレスが他の人にどのような影響を与えているのかしっかり考えた',
+];
+const BEH = [
+  'ストレスをコントロールするために積極的になることを自分に誓った',
+  'ストレスを感じ始めたとき、楽しめるような健康的な活動に切りかえた',
+  '私がストレスをどのようにコントロールしているかについて、コメントしてくれる人が少なくとも一人はいた',
+  '健康的なやり方でストレスをコントロールできるように準備をした（予定を立てるなど）',
+  '健康的なやり方でストレスをコントロールできたとき、ごほうびをもらった（自分または他人から）',
+];
+const PPSM_CHOICES = [
+  '1. 全くなかった',
+  '2. あまりなかった',
+  '3. ときどきあった',
+  '4. よくあった',
+  '5. 非常によくあった',
 ];
 
 export default function PpsmPage() {
@@ -26,7 +35,7 @@ export default function PpsmPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-xl font-bold">PPSM（変容プロセス；8項目版）</h2>
+        <h2 className="text-xl font-bold">PPSM（変容プロセス；10項目版）</h2>
         <p className="text-sm text-gray-400">対象期間：<b>最近30日以内（今日を含む）</b>（その間の頻度）</p>
       </header>
       <section className="card space-y-5 p-6">
@@ -39,6 +48,7 @@ export default function PpsmPage() {
                 value={data.ppsm.experiential[index]}
                 onChange={(v) => setLikert('ppsm.experiential', index, v)}
                 disabled={reviewMode}
+                labels={PPSM_CHOICES}
               />
             </div>
           ))}
@@ -52,6 +62,7 @@ export default function PpsmPage() {
                 value={data.ppsm.behavioral[index]}
                 onChange={(v) => setLikert('ppsm.behavioral', index, v)}
                 disabled={reviewMode}
+                labels={PPSM_CHOICES}
               />
             </div>
           ))}
