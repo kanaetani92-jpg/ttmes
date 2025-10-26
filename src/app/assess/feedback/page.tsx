@@ -1,13 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getIdToken } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { RestartAssessmentButton } from '@/components/AssessmentActions';
+import { LogoutButton, RestartAssessmentButton } from '@/components/AssessmentActions';
 import { useAssessment, buildAssessmentRequest } from '@/components/AssessmentStore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
-import { PROCESS_LABELS, getProcessBandLabel } from '@/lib/processBands';
 import { HIDDEN_MESSAGE_IDS } from '@/lib/hiddenMessageIds';
 
 type PrescriptionResponse = {
@@ -29,6 +29,7 @@ export default function FeedbackPage() {
   const { data, hasHydrated } = useAssessment();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [result, setResult] = useState<PrescriptionResponse | null>(null);
 
   const generateFeedback = useCallback(async () => {
@@ -118,6 +119,15 @@ export default function FeedbackPage() {
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link className="btn" href="/assess/history#assessment-history">
+            過去の回答
+          </Link>
+          <LogoutButton onError={setActionError} />
+        </div>
+        {actionError ? <p className="text-right text-sm text-red-300">{actionError}</p> : null}
+      </div>
       <header className="space-y-1">
         <h2 className="text-xl font-bold">フィードバック生成</h2>
       </header>
@@ -139,38 +149,6 @@ export default function FeedbackPage() {
             </p>
           )}
           <div className="space-y-3">
-            <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
-              <h4 className="text-sm font-semibold text-gray-200">プロセスの評価</h4>
-              <div className="grid gap-3 md:grid-cols-2">
-                {(
-                  [
-                    {
-                      key: 'experiential' as const,
-                      label: PROCESS_LABELS.experiential,
-                      band: result.bands?.PPSM?.experiential,
-                    },
-                    {
-                      key: 'behavioral' as const,
-                      label: PROCESS_LABELS.behavioral,
-                      band: result.bands?.PPSM?.behavioral,
-                    },
-                  ]
-                ).map((item) => {
-                  const bandLabel = getProcessBandLabel(item.band);
-                  return (
-                    <div
-                      key={item.key}
-                      className="space-y-1 rounded-lg border border-[#1f2549] bg-[#11163a] p-3"
-                    >
-                      <p className="text-xs font-semibold text-gray-400">{item.label}</p>
-                      <div className="text-sm text-gray-300">
-                        {bandLabel ? `評価：${bandLabel}` : '評価：不明'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
             {result.messages.map((message) => (
               <article key={message.id} className="space-y-1 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
                 <h4 className="font-semibold">{message.title}</h4>
@@ -180,8 +158,11 @@ export default function FeedbackPage() {
           </div>
         </section>
       )}
-      <div className="flex justify-end pt-4">
+      <div className="flex flex-wrap justify-end gap-2 pt-6">
         <RestartAssessmentButton />
+        <Link className="btn" href="/">
+          トップに戻る
+        </Link>
       </div>
     </div>
   );

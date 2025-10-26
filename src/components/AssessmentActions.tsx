@@ -30,20 +30,17 @@ export function RestartAssessmentButton({ className, onRestart }: RestartAssessm
   );
 }
 
-export function AssessmentActions() {
+type LogoutButtonProps = {
+  className?: string;
+  onError?: (message: string | null) => void;
+};
+
+export function LogoutButton({ className, onError }: LogoutButtonProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  const isFeedbackPage = pathname === '/assess/feedback';
-
-  if (isFeedbackPage) {
-    return null;
-  }
 
   async function handleLogout() {
-    setActionError(null);
+    onError?.(null);
     setLoggingOut(true);
     try {
       const auth = getFirebaseAuth();
@@ -51,10 +48,32 @@ export function AssessmentActions() {
       router.replace('/login');
     } catch (error) {
       console.error('Failed to sign out', error);
-      setActionError('ログアウトに失敗しました。もう一度お試しください。');
+      onError?.('ログアウトに失敗しました。もう一度お試しください。');
     } finally {
       setLoggingOut(false);
     }
+  }
+
+  return (
+    <button
+      type="button"
+      className={className ? `btn ${className}` : 'btn'}
+      onClick={handleLogout}
+      disabled={loggingOut}
+    >
+      {loggingOut ? 'ログアウト中…' : 'ログアウト'}
+    </button>
+  );
+}
+
+export function AssessmentActions() {
+  const pathname = usePathname();
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const isFeedbackPage = pathname === '/assess/feedback';
+
+  if (isFeedbackPage) {
+    return null;
   }
 
   return (
@@ -64,9 +83,7 @@ export function AssessmentActions() {
         <Link className="btn" href="/assess/history#assessment-history">
           過去の回答
         </Link>
-        <button type="button" className="btn" onClick={handleLogout} disabled={loggingOut}>
-          {loggingOut ? 'ログアウト中…' : 'ログアウト'}
-        </button>
+        <LogoutButton onError={setActionError} />
       </div>
       {actionError ? <p className="text-right text-sm text-red-300">{actionError}</p> : null}
     </div>

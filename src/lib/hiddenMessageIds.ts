@@ -8,5 +8,4 @@ export const HIDDEN_MESSAGE_IDS = new Set<string>([
   'SE.MID',
   'DB.PROS_LOW.CONS_HIGH',
   'PROC.EXP.MID',
-  'PROC.BEH.HIGH',
 ]);

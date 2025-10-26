@@ -12,6 +12,7 @@ import {
 import {
   AssessmentData,
   Likert5,
+  Likert5Value,
   Stage,
   buildAssessmentPayload,
   cloneAssessmentData,
@@ -73,7 +74,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const setLikert = useCallback((path: string, index: number, val: Likert5) => {
     setData((prev) => {
       const next = cloneAssessmentData(prev);
-      const arr = path.split('.').reduce<any>((acc, key) => acc[key], next) as Likert5[];
+      const arr = path.split('.').reduce<any>((acc, key) => acc[key], next) as Likert5Value[];
       arr[index] = val;
       return next;
     });
