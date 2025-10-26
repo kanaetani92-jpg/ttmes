@@ -138,18 +138,26 @@ export default function StagePage() {
     [sanitizedQuery],
   );
 
+  // ⭐️ 修正された handleNextClick: デフォルト遷移をキャンセルし、router.push()で遷移を強制
   const handleNextClick = useCallback(
-    (_event: MouseEvent<HTMLAnchorElement>) => {
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      // 1. デフォルトの遷移をキャンセル
+      event.preventDefault();
+
       if (!stage) {
         setStageError('ステージを選択してください。');
         return;
       }
 
+      // 2. 状態を更新
       setStageError(null);
       persistStage(stage);
       setAssessmentStage(stage);
+
+      // 3. プログラムによる強制遷移
+      router.push(nextPath);
     },
-    [setAssessmentStage, stage],
+    [setAssessmentStage, stage, router, nextPath],
   );
 
   useEffect(() => {
@@ -163,7 +171,9 @@ export default function StagePage() {
   return (
     <div className="space-y-4">
       <header className="space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">ステージ分類</div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">
+          ステージ分類
+        </div>
         <h2 className="text-xl font-bold">設問1：変容ステージ</h2>
       </header>
 
@@ -204,6 +214,7 @@ export default function StagePage() {
         {stageError && <div className="text-sm text-red-300">{stageError}</div>}
 
         <div className="flex gap-2">
+          {/* ⭐️ onClickで修正後の handleNextClick を使用し、遷移を強制 */}
           <Link className="btn" href={nextPath} onClick={handleNextClick}>
             次へ（RISCIへ進む）
           </Link>
