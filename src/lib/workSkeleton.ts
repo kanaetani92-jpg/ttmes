@@ -129,7 +129,11 @@ const baseSkeletons: Record<Stage, SkeletonData> = {
     today_action: {
       id: 'tiny_experiment',
       est_minutes: 2,
-      steps: ['1分の深呼吸', '感情の名前を1語で記録'],
+      steps: [
+        '通勤前のデスクで1分深呼吸する',
+        '呼吸後すぐ、今の感情を1語メモ',
+        'メモを書いたら今日の一歩を声に出す',
+      ],
     },
     weekly_plan_cards: [
       {
