@@ -5,8 +5,16 @@ import { useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
-const STRESS = ['いつもより負担がかかっていると感じた', 'いろいろなことで気持ちがまいった', 'まわりからプレッシャーを感じた'];
-const COPING = ['困った時に相談できた', '思いがけない問題にも対応できた', '大変な状況でも対応できた'];
+const STRESS = [
+  'いつもより負担がかかっていると感じた',
+  'いろいろなことで気持ちがまいった',
+  'まわりからプレッシャーを感じた',
+];
+const COPING = [
+  'トラブルをうまく解決できた',
+  '思いがけない問題に直面しても対応できた',
+  '大変な状況に出会っても対応できた',
+];
 
 export default function RisciPage() {
   const searchParams = useSearchParams();
