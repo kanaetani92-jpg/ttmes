@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { STAGE_LABELS, Stage } from '@/lib/assessment';
@@ -203,8 +203,7 @@ export default function HistoryPage() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOlderAssessmentId, setSelectedOlderAssessmentId] = useState('');
-  const [selectedOlderPrescriptionId, setSelectedOlderPrescriptionId] = useState('');
+  const [selectedHistoryId, setSelectedHistoryId] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -288,34 +287,40 @@ export default function HistoryPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const olderAssessments = assessments.slice(1);
-    setSelectedOlderAssessmentId((prev) => {
-      if (olderAssessments.length === 0) {
-        return '';
-      }
-      return prev && olderAssessments.some((item) => item.id === prev) ? prev : '';
+  const historyItems = useMemo(() => {
+    const length = Math.max(assessments.length, prescriptions.length);
+    return Array.from({ length }).map((_, index) => {
+      const assessment = assessments[index] ?? null;
+      const prescription = prescriptions[index] ?? null;
+      const createdAt = assessment?.createdAt ?? prescription?.createdAt ?? null;
+      const stage = assessment?.scores?.stage ?? prescription?.scores?.stage ?? null;
+      const stageLabel = stage ? STAGE_LABELS[stage] : '不明';
+      const id = assessment?.id ?? prescription?.id ?? `history-${index}`;
+      return {
+        id,
+        assessment,
+        prescription,
+        createdAt,
+        stageLabel,
+        index,
+      };
     });
-  }, [assessments]);
+  }, [assessments, prescriptions]);
 
   useEffect(() => {
-    const olderPrescriptions = prescriptions.slice(1);
-    setSelectedOlderPrescriptionId((prev) => {
-      if (olderPrescriptions.length === 0) {
-        return '';
+    if (historyItems.length === 0) {
+      setSelectedHistoryId('');
+      return;
+    }
+    setSelectedHistoryId((prev) => {
+      if (prev && historyItems.some((item) => item.id === prev)) {
+        return prev;
       }
-      return prev && olderPrescriptions.some((item) => item.id === prev) ? prev : '';
+      return historyItems[0]?.id ?? '';
     });
-  }, [prescriptions]);
+  }, [historyItems]);
 
-  const latestAssessment = assessments[0] ?? null;
-  const olderAssessments = assessments.slice(1);
-  const selectedOlderAssessment = olderAssessments.find((item) => item.id === selectedOlderAssessmentId) ?? null;
-
-  const latestPrescription = prescriptions[0] ?? null;
-  const olderPrescriptions = prescriptions.slice(1);
-  const selectedOlderPrescription =
-    olderPrescriptions.find((item) => item.id === selectedOlderPrescriptionId) ?? null;
+  const selectedHistoryItem = historyItems.find((item) => item.id === selectedHistoryId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -328,98 +333,60 @@ export default function HistoryPage() {
 
       {error && <p className="rounded-lg border border-red-800/60 bg-red-900/20 p-3 text-sm text-red-200">{error}</p>}
 
-      <section id="assessment-history" className="card space-y-4 p-6">
+      <section id="history" className="card space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">回答履歴</h3>
+          <h3 className="text-lg font-semibold">回答履歴とフィードバック</h3>
           {loading && <span className="text-xs text-gray-400">読み込み中…</span>}
         </div>
-        {assessments.length === 0 && !loading ? (
-          <p className="text-sm text-gray-300">保存された回答はまだありません。</p>
-        ) : (
-          <div className="space-y-4">
-            {latestAssessment ? <AssessmentCard key={latestAssessment.id} item={latestAssessment} /> : null}
-            {olderAssessments.length > 0 && (
-              <>
-                <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
-                  <label
-                    className="text-xs font-semibold text-gray-400"
-                    htmlFor="older-assessment-select"
-                  >
-                    さらに前の回答を選択
-                  </label>
-                  <select
-                    id="older-assessment-select"
-                    className="w-full rounded-lg border border-[#2a315a] bg-[#0b102b] px-3 py-2 text-sm text-white"
-                    value={selectedOlderAssessmentId}
-                    onChange={(event) => setSelectedOlderAssessmentId(event.target.value)}
-                  >
-                    <option value="">過去の回答を選択</option>
-                    {olderAssessments.map((item) => {
-                      const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
-                      return (
-                        <option key={item.id} value={item.id}>
-                          {formatDate(item.createdAt)} ／ ステージ：{stageLabel}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <p className="text-[11px] text-gray-500">選択した回答の詳細が下に表示されます。</p>
-                </div>
-                {selectedOlderAssessment ? (
-                  <AssessmentCard key={selectedOlderAssessment.id} item={selectedOlderAssessment} />
-                ) : null}
-              </>
-            )}
-          </div>
-        )}
-      </section>
+        {!loading && historyItems.length === 0 ? (
+          <p className="text-sm text-gray-300">保存された回答やフィードバックはまだありません。</p>
+        ) : null}
+        {historyItems.length > 0 ? (
+          <div className="space-y-6">
+            <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+              <label className="text-xs font-semibold text-gray-400" htmlFor="history-select">
+                表示する履歴を選択
+              </label>
+              <select
+                id="history-select"
+                className="w-full rounded-lg border border-[#2a315a] bg-[#0b102b] px-3 py-2 text-sm text-white"
+                value={selectedHistoryId}
+                onChange={(event) => setSelectedHistoryId(event.target.value)}
+              >
+                {historyItems.map((item) => {
+                  const prefix = item.index === 0 ? '最新：' : '';
+                  return (
+                    <option key={item.id} value={item.id}>
+                      {prefix}
+                      {formatDate(item.createdAt)} ／ ステージ：{item.stageLabel}
+                    </option>
+                  );
+                })}
+              </select>
+              <p className="text-[11px] text-gray-500">選択した回答履歴とフィードバックが下に表示されます。</p>
+            </div>
 
-      <section id="feedback-history" className="card space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">フィードバック履歴</h3>
-          {loading && <span className="text-xs text-gray-400">読み込み中…</span>}
-        </div>
-        {prescriptions.length === 0 && !loading ? (
-          <p className="text-sm text-gray-300">保存されたフィードバックはまだありません。</p>
-        ) : (
-          <div className="space-y-4">
-            {latestPrescription ? (
-              <PrescriptionCard key={latestPrescription.id} item={latestPrescription} />
-            ) : null}
-            {olderPrescriptions.length > 0 && (
-              <>
-                <div className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
-                  <label
-                    className="text-xs font-semibold text-gray-400"
-                    htmlFor="older-prescription-select"
-                  >
-                    さらに前のフィードバックを選択
-                  </label>
-                  <select
-                    id="older-prescription-select"
-                    className="w-full rounded-lg border border-[#2a315a] bg-[#0b102b] px-3 py-2 text-sm text-white"
-                    value={selectedOlderPrescriptionId}
-                    onChange={(event) => setSelectedOlderPrescriptionId(event.target.value)}
-                  >
-                    <option value="">過去のフィードバックを選択</option>
-                    {olderPrescriptions.map((item) => {
-                      const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
-                      return (
-                        <option key={item.id} value={item.id}>
-                          {formatDate(item.createdAt)} ／ ステージ：{stageLabel}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <p className="text-[11px] text-gray-500">選択したフィードバックの詳細が下に表示されます。</p>
-                </div>
-                {selectedOlderPrescription ? (
-                  <PrescriptionCard key={selectedOlderPrescription.id} item={selectedOlderPrescription} />
-                ) : null}
-              </>
-            )}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">回答内容</h4>
+                {selectedHistoryItem?.assessment ? (
+                  <AssessmentCard item={selectedHistoryItem.assessment} />
+                ) : (
+                  <p className="text-xs text-gray-400">この履歴には回答データが見つかりませんでした。</p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">フィードバック</h4>
+                {selectedHistoryItem?.prescription ? (
+                  <PrescriptionCard item={selectedHistoryItem.prescription} />
+                ) : (
+                  <p className="text-xs text-gray-400">この履歴にはフィードバックが保存されていません。</p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        ) : null}
       </section>
     </div>
   );
