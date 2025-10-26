@@ -56,16 +56,82 @@ const toDate = (value: any): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const AssessmentCard = ({ item }: { item: AssessmentHistory }) => {
-  const stageLabel = item.scores?.stage ? STAGE_LABELS[item.scores.stage] : '不明';
+type ScoreItem = { label: string; value?: number };
+
+const ScoreSection = ({ title, items }: { title: string; items: ScoreItem[] }) => {
+  const hasAnyScore = items.some((item) => typeof item.value === 'number');
+
   return (
-    <article className="space-y-2 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
+    <section className="space-y-2 rounded-lg border border-[#1f2549] bg-[#11163a] p-3">
+      <h4 className="text-xs font-semibold text-gray-300">{title}</h4>
+      {hasAnyScore ? (
+        <dl className="grid gap-2 md:grid-cols-2">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className="space-y-1 rounded-md border border-[#1f2549] bg-[#0b102b] p-3"
+            >
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {item.label}
+              </dt>
+              <dd className="text-sm font-semibold text-gray-100">
+                {typeof item.value === 'number' ? `${item.value} 点` : '不明'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-[11px] text-gray-400">保存された得点がありません。</p>
+      )}
+    </section>
+  );
+};
+
+const AssessmentCard = ({ item }: { item: AssessmentHistory }) => {
+  const stage = item.scores?.stage ?? null;
+  const stageLabel = stage ? STAGE_LABELS[stage] : '不明';
+
+  const risciScores: ScoreItem[] = [
+    { label: 'ストレス（RISCI）', value: item.scores?.risci?.stress },
+    { label: 'コーピング（RISCI）', value: item.scores?.risci?.coping },
+  ];
+
+  const smaScores: ScoreItem[] = [
+    { label: '計画（SMA）', value: item.scores?.sma?.planning },
+    { label: 'リフレーミング（SMA）', value: item.scores?.sma?.reframing },
+    { label: '健康的な活動（SMA）', value: item.scores?.sma?.healthy_activity },
+  ];
+
+  const pdsmScores: ScoreItem[] = [
+    { label: '利得（PDSM）', value: item.scores?.pdsm?.pros },
+    { label: '損失（PDSM）', value: item.scores?.pdsm?.cons },
+  ];
+
+  const ppsmScores: ScoreItem[] = [
+    { label: '体験的・認知的プロセス（PPSM）', value: item.scores?.ppsm?.experiential },
+    { label: '行動的プロセス（PPSM）', value: item.scores?.ppsm?.behavioral },
+  ];
+
+  const pssmScores: ScoreItem[] = [{
+    label: '自己効力感（PSSM）',
+    value: item.scores?.pssm?.self_efficacy,
+  }];
+
+  return (
+    <article className="space-y-3 rounded-xl border border-[#1f2549] bg-[#0e1330] p-4">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-xs text-gray-400">{formatDate(item.createdAt)}</div>
         <div className="text-sm font-semibold">ステージ：{stageLabel}</div>
       </header>
-      <p className="text-xs leading-relaxed text-gray-400">
-        個別の得点は履歴では表示されませんが、フィードバックは以下に保存されています。
+      <div className="space-y-3">
+        <ScoreSection title="RISCI（ストレス／コーピング）" items={risciScores} />
+        <ScoreSection title="SMA（ストレスマネジメント活動）" items={smaScores} />
+        <ScoreSection title="PSSM（自己効力感）" items={pssmScores} />
+        <ScoreSection title="PDSM（意思決定バランス）" items={pdsmScores} />
+        <ScoreSection title="PPSM（変容プロセス：高次2因子）" items={ppsmScores} />
+      </div>
+      <p className="text-[11px] leading-relaxed text-gray-500">
+        ※ 各スコアは回答内容から算出した合計得点です。値が「不明」と表示される場合は、当時の保存データに該当項目が含まれていません。
       </p>
     </article>
   );
