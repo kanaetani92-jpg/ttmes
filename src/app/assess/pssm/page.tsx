@@ -6,10 +6,10 @@ import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
 const QUESTIONS = [
-  '自分の思う通りにならなかったとき',
+  '自分の望み通りにならなかったとき',
   '落ち込んでいるとき',
-  '人との関わりの中で、問題を抱えているとき',
-  '友達や家族から嫌な思いをさせられているとき',
+  '人との関わりの中で問題があるとき',
+  '友達や家族から、嫌な思いをさせられているとき',
   '仕事や勉強の負担が多いと感じるとき',
 ];
 const PSSM_CHOICES = [
