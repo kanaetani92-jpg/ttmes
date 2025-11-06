@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { buildWorkSkeleton, WORK_SYSTEM_PROMPT } from '@/lib/workSkeleton';
 import { normalizeAssessmentData, type AssessmentData } from '@/lib/assessment';
+import { getStageGuide } from '@/data/stageGuides';
 
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -65,6 +66,18 @@ export async function POST(request: NextRequest) {
 
   const normalizedAssessment = normalizeAssessmentData(parsedBody.assessment);
   const { context, skeleton, bandLabels, scores, stageName } = buildContextPayload(normalizedAssessment);
+
+  const guide = getStageGuide(scores.stage);
+  if (guide) {
+    return NextResponse.json({
+      reply: JSON.stringify(guide, null, 2),
+      skeleton,
+      bands: bandLabels,
+      scores,
+      stage: stageName,
+      guide,
+    });
+  }
 
   const messages = parsedBody.messages;
   const lastMessage = messages[messages.length - 1];
