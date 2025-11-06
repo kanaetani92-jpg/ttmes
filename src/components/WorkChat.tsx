@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
+import type { StageGuide } from '@/data/stageGuides';
 import { useAssessment } from './AssessmentStore';
 import { WorkPlanMessage, type WorkPlan } from './WorkPlanMessage';
 
@@ -97,7 +98,12 @@ export function WorkChat() {
         throw new Error(message || 'チャットの呼び出しに失敗しました。');
       }
 
-      const json = (await res.json()) as { reply: string; stage?: string; bands?: Record<string, unknown> };
+      const json = (await res.json()) as {
+        reply: string;
+        stage?: string;
+        bands?: Record<string, unknown>;
+        guide?: StageGuide;
+      };
       const plan = parseWorkPlan(json.reply.trim());
       appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply, plan });
       setContext({ stage: json.stage, bands: json.bands });
