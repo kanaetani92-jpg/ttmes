@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
+import type { Auth } from 'firebase/auth';
+import { addDoc, collection, doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import type { StageGuide } from '@/data/stageGuides';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { useAssessment } from './AssessmentStore';
 import { WorkPlanMessage, type WorkPlan } from './WorkPlanMessage';
 
@@ -21,6 +24,11 @@ type ChatContext = {
 
 const createMessageId = () => crypto.randomUUID();
 const MAX_MESSAGE_LENGTH = 5000;
+
+type SessionInfo = {
+  userId: string;
+  sessionId: string;
+};
 
 const parseWorkPlan = (reply: string): WorkPlan | undefined => {
   try {
@@ -55,20 +63,146 @@ export function WorkChat() {
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState<ChatContext>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const authRef = useRef<Auth | null>(null);
+  const dbRef = useRef<Firestore | null>(null);
+  const sessionRef = useRef<SessionInfo | null>(null);
+  const sessionPromiseRef = useRef<Promise<SessionInfo> | null>(null);
+  const assessmentSnapshotRef = useRef(data);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = 0;
   }, [messages]);
 
+  useEffect(() => {
+    assessmentSnapshotRef.current = data;
+  }, [data]);
+
+  useEffect(() => {
+    try {
+      authRef.current = getFirebaseAuth();
+      dbRef.current = getFirebaseDb();
+    } catch (firebaseError) {
+      console.error('Failed to initialize Firebase for work chat', firebaseError);
+      setError((prev) => prev ?? 'Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
+    }
+  }, []);
+
   const trimmedInput = useMemo(() => input.trim(), [input]);
   const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
   const canSend = trimmedInput.length > 0 && !loading && hasHydrated;
   const remaining = MAX_MESSAGE_LENGTH - input.length;
 
-  const appendMessage = (message: ChatMessage) => {
-    setMessages((prev) => [...prev, message]);
-  };
+  const ensureSession = useCallback(async (): Promise<SessionInfo> => {
+    if (sessionRef.current) {
+      return sessionRef.current;
+    }
+
+    if (sessionPromiseRef.current) {
+      return sessionPromiseRef.current;
+    }
+
+    const createSession = async () => {
+      const auth = authRef.current ?? getFirebaseAuth();
+      authRef.current = auth;
+      const db = dbRef.current ?? getFirebaseDb();
+      dbRef.current = db;
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('ログイン情報が取得できませんでした。再度ログインしなおしてください。');
+      }
+
+      const sessionsCollection = collection(db, 'users', user.uid, 'workSessions');
+      const docRef = await addDoc(sessionsCollection, {
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        assessmentSnapshot: assessmentSnapshotRef.current,
+      });
+
+      const info: SessionInfo = { userId: user.uid, sessionId: docRef.id };
+      sessionRef.current = info;
+      return info;
+    };
+
+    sessionPromiseRef.current = createSession().finally(() => {
+      sessionPromiseRef.current = null;
+    });
+
+    return sessionPromiseRef.current;
+  }, []);
+
+  const persistChatMessage = useCallback(
+    async (message: ChatMessage) => {
+      try {
+        const session = await ensureSession();
+        const db = dbRef.current ?? getFirebaseDb();
+        dbRef.current = db;
+        const messagesCollection = collection(
+          db,
+          'users',
+          session.userId,
+          'workSessions',
+          session.sessionId,
+          'messages',
+        );
+        const payload: Record<string, unknown> = {
+          role: message.role,
+          content: message.content,
+          plan: message.plan ?? null,
+          createdAt: serverTimestamp(),
+        };
+        await addDoc(messagesCollection, payload);
+        const sessionDoc = doc(db, 'users', session.userId, 'workSessions', session.sessionId);
+        await setDoc(
+          sessionDoc,
+          {
+            updatedAt: serverTimestamp(),
+            lastMessageRole: message.role,
+          },
+          { merge: true },
+        );
+      } catch (firebaseError) {
+        console.error('Failed to persist work chat message', firebaseError);
+      }
+    },
+    [ensureSession],
+  );
+
+  const appendMessage = useCallback(
+    (message: ChatMessage) => {
+      setMessages((prev) => [...prev, message]);
+      void persistChatMessage(message);
+    },
+    [persistChatMessage],
+  );
+
+  useEffect(() => {
+    if (!context.stage && !context.bands) {
+      return;
+    }
+
+    const persistContext = async () => {
+      try {
+        const session = await ensureSession();
+        const db = dbRef.current ?? getFirebaseDb();
+        dbRef.current = db;
+        const sessionDoc = doc(db, 'users', session.userId, 'workSessions', session.sessionId);
+        await setDoc(
+          sessionDoc,
+          {
+            contextSnapshot: context,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } catch (firebaseError) {
+        console.error('Failed to persist work chat context', firebaseError);
+      }
+    };
+
+    void persistContext();
+  }, [context, ensureSession]);
 
   const sendMessage = async (rawInput: string) => {
     if (loading || !hasHydrated) return;
@@ -78,7 +212,7 @@ export function WorkChat() {
 
     const userMessage: ChatMessage = { id: createMessageId(), role: 'user', content };
     const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+    appendMessage(userMessage);
     setInput('');
     setLoading(true);
     setError(null);
@@ -131,6 +265,53 @@ export function WorkChat() {
       }
     }
   };
+
+  useEffect(() => {
+    if (!hasHydrated || hasStartedRef.current || loading || messages.length > 0) {
+      return;
+    }
+
+    hasStartedRef.current = true;
+
+    const kickoff = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/workchat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user' as const, content: 'ワークブックを始めたいです。' }],
+            assessment: data,
+          }),
+        });
+
+        if (!res.ok) {
+          const message = await res.text();
+          throw new Error(message || 'チャットの呼び出しに失敗しました。');
+        }
+
+        const json = (await res.json()) as {
+          reply: string;
+          stage?: string;
+          bands?: Record<string, unknown>;
+          guide?: StageGuide;
+        };
+        const reply = json.reply.trim();
+        const plan = parseWorkPlan(reply);
+        appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply, plan });
+        setContext({ stage: json.stage, bands: json.bands });
+      } catch (err: any) {
+        console.error(err);
+        setError(err?.message ?? 'チャットの呼び出しに失敗しました。');
+        hasStartedRef.current = false;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void kickoff();
+  }, [appendMessage, data, hasHydrated, loading, messages.length]);
 
   if (!hasHydrated) {
     return (
