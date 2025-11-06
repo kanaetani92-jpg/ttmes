@@ -23,20 +23,26 @@ const CHECKLIST_LABELS: Record<string, string> = {
 };
 
 const StageGuideStepCard = ({ step }: { step: StageGuide['steps'][number] }) => {
-  const listEntries = step.lists ? Object.values(step.lists as Record<string, unknown>) : [];
-  const checklist = step.checklist as unknown;
+  const listEntries =
+    'lists' in step && step.lists
+      ? Object.values(step.lists as Record<string, unknown>)
+      : [];
+  const checklist = 'checklist' in step ? (step.checklist as unknown) : undefined;
+  const instructions =
+    'instructions' in step && Array.isArray(step.instructions) ? step.instructions : undefined;
+  const goal = 'goal' in step && typeof step.goal === 'string' ? step.goal : undefined;
 
   return (
     <div className="space-y-3 rounded-lg bg-white/5 p-4">
       <div className="space-y-1">
         <h4 className="text-base font-semibold text-white">{step.title}</h4>
-        {step.goal ? <p className="text-xs text-gray-400">目標: {step.goal}</p> : null}
+        {goal ? <p className="text-xs text-gray-400">目標: {goal}</p> : null}
       </div>
 
-      {Array.isArray(step.instructions) && step.instructions.length ? (
+      {instructions && instructions.length ? (
         <div className="space-y-2">
           <SectionTitle>進め方</SectionTitle>
-          <BulletList items={step.instructions} />
+          <BulletList items={instructions} />
         </div>
       ) : null}
 
@@ -66,25 +72,29 @@ const StageGuideStepCard = ({ step }: { step: StageGuide['steps'][number] }) => 
         </div>
       ) : null}
 
-      {Array.isArray(step.excuse_categories) && step.excuse_categories.length ? (
+      {'excuse_categories' in step &&
+      Array.isArray(step.excuse_categories) &&
+      step.excuse_categories.length ? (
         <div className="space-y-3">
           {step.excuse_categories.map((category, index) => {
             const examples = Array.isArray(category.examples)
               ? category.examples.filter((example) => Boolean(example?.trim?.() ?? example))
               : [];
+            const prompt =
+              'prompt' in category && typeof category.prompt === 'string' ? category.prompt : undefined;
 
             return (
               <div key={`${category.category}-${index}`} className="space-y-2 rounded-lg bg-white/5 p-3">
                 <p className="text-sm font-semibold text-white">{category.category}</p>
                 {examples.length ? <BulletList items={examples} /> : null}
-                {category.prompt ? <p className="text-xs text-gray-300">{category.prompt}</p> : null}
+                {prompt ? <p className="text-xs text-gray-300">{prompt}</p> : null}
               </div>
             );
           })}
         </div>
       ) : null}
 
-      {Array.isArray(step.cases) && step.cases.length ? (
+      {'cases' in step && Array.isArray(step.cases) && step.cases.length ? (
         <div className="space-y-3">
           {step.cases.map((caseStudy, index) => {
             const meta = [
@@ -107,7 +117,7 @@ const StageGuideStepCard = ({ step }: { step: StageGuide['steps'][number] }) => 
         </div>
       ) : null}
 
-      {typeof step.psychoeducation === 'string' ? (
+      {'psychoeducation' in step && typeof step.psychoeducation === 'string' ? (
         <div className="space-y-2">
           <SectionTitle>ポイント</SectionTitle>
           <p className="whitespace-pre-wrap text-gray-100">{step.psychoeducation}</p>
@@ -135,7 +145,7 @@ const StageGuideStepCard = ({ step }: { step: StageGuide['steps'][number] }) => 
         </div>
       ) : null}
 
-      {Array.isArray(step.web_links) && step.web_links.length ? (
+      {'web_links' in step && Array.isArray(step.web_links) && step.web_links.length ? (
         <div className="space-y-2">
           <SectionTitle>参考リンク</SectionTitle>
           <ul className="space-y-1 text-sm text-blue-200">
