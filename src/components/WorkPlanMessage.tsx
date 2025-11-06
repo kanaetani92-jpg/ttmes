@@ -184,11 +184,10 @@ export function WorkPlanMessage({ plan }: Props) {
         </div>
       ) : null}
 
-      {plan.meta ? (
+      {plan.meta && (plan.meta.stage || plan.meta.band_summary) ? (
         <div className="space-y-1 text-xs text-gray-400">
           {plan.meta.stage ? <p>ステージ: {plan.meta.stage}</p> : null}
           {plan.meta.band_summary ? <p>バンド要約: {plan.meta.band_summary}</p> : null}
-          {plan.meta.generation_notes ? <p>生成メモ: {plan.meta.generation_notes}</p> : null}
         </div>
       ) : null}
     </div>
