@@ -6,38 +6,28 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import type { Stage } from '@/lib/assessment';
 
-type StageOption = { id: Stage; stageLabel: string; description: string };
+type StageOption = { id: Stage; label: string };
 
 const OPTIONS: StageOption[] = [
   {
     id: 'PC',
-    stageLabel: '前熟考期：',
-    description:
-      'いいえ。そして、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図はありません。',
+    label: 'いいえ。そして、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図はありません。',
   },
   {
     id: 'C',
-    stageLabel: '熟考期：',
-    description:
-      'いいえ。しかし、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図があります。',
+    label: 'いいえ。しかし、私は、6ヶ月以内に効果的なストレスマネジメント行動を始める意図があります。',
   },
   {
     id: 'PR',
-    stageLabel: '準備期：',
-    description:
-      'いいえ。しかし、私は、30日以内に効果的なストレスマネジメント行動を始める意図があります。',
+    label: 'いいえ。しかし、私は、30日以内に効果的なストレスマネジメント行動を始める意図があります。',
   },
   {
     id: 'A',
-    stageLabel: '実行期：',
-    description:
-      'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以内です。',
+    label: 'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以内です。',
   },
   {
     id: 'M',
-    stageLabel: '維持期：',
-    description:
-      'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以上になります。',
+    label: 'はい。私は、30日以内に効果的なストレスマネジメント行動を実践していますが、始めてから6ヶ月以上になります。',
   },
 ];
 
@@ -181,10 +171,7 @@ export default function StagePage() {
                 onChange={() => handleSelect(opt.id)}
                 className="mt-1"
               />
-              <div>
-                <div className="font-medium">{opt.stageLabel}</div>
-                <div className="text-xs text-gray-400">{opt.description}</div>
-              </div>
+              <div className="font-medium leading-relaxed">{opt.label}</div>
             </label>
           ))}
         </div>
