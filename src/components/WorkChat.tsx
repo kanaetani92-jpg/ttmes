@@ -8,6 +8,7 @@ import { addDoc, collection, doc, serverTimestamp, setDoc, type Firestore } from
 import type { StageGuide } from '@/data/stageGuides';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { useAssessment } from './AssessmentStore';
+import { StageGuideMessage } from './StageGuideMessage';
 import { WorkPlanMessage, type WorkPlan } from './WorkPlanMessage';
 
 type ChatMessage = {
@@ -15,6 +16,7 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   plan?: WorkPlan;
+  guide?: StageGuide;
 };
 
 type ChatContext = {
@@ -150,6 +152,7 @@ export function WorkChat() {
           role: message.role,
           content: message.content,
           plan: message.plan ?? null,
+          guide: message.guide ?? null,
           createdAt: serverTimestamp(),
         };
         await addDoc(messagesCollection, payload);
@@ -239,7 +242,13 @@ export function WorkChat() {
         guide?: StageGuide;
       };
       const plan = parseWorkPlan(json.reply.trim());
-      appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply, plan });
+      appendMessage({
+        id: createMessageId(),
+        role: 'assistant',
+        content: json.reply,
+        plan,
+        guide: json.guide,
+      });
       setContext({ stage: json.stage, bands: json.bands });
     } catch (err: any) {
       console.error(err);
@@ -299,7 +308,13 @@ export function WorkChat() {
         };
         const reply = json.reply.trim();
         const plan = parseWorkPlan(reply);
-        appendMessage({ id: createMessageId(), role: 'assistant', content: json.reply, plan });
+        appendMessage({
+          id: createMessageId(),
+          role: 'assistant',
+          content: json.reply,
+          plan,
+          guide: json.guide,
+        });
         setContext({ stage: json.stage, bands: json.bands });
       } catch (err: any) {
         console.error(err);
@@ -351,8 +366,14 @@ export function WorkChat() {
                   message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-[#151b39] text-gray-100',
                 )}
               >
-                {message.role === 'assistant' && message.plan ? (
-                  <WorkPlanMessage plan={message.plan} />
+                {message.role === 'assistant' ? (
+                  message.guide ? (
+                    <StageGuideMessage guide={message.guide} />
+                  ) : message.plan ? (
+                    <WorkPlanMessage plan={message.plan} />
+                  ) : (
+                    message.content
+                  )
                 ) : (
                   message.content
                 )}
