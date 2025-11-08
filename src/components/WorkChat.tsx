@@ -497,7 +497,7 @@ export function WorkChat() {
   };
 
   return (
-    <section className="card flex h-[min(90vh,800px)] flex-col space-y-4 p-6">
+    <section className="card flex h-[min(90vh,800px)] flex-col space-y-4 p-6 pb-8">
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
@@ -581,7 +581,7 @@ export function WorkChat() {
           </div>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3 pb-4">
         {error ? <p className="text-xs text-red-300">{error}</p> : null}
         <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20">
           <textarea
