@@ -79,7 +79,14 @@ export async function POST(request: NextRequest) {
   try {
     const chat = model.startChat({
       history,
-      systemInstruction: systemInstructionText,
+      systemInstruction: {
+        role: 'system',
+        parts: [
+          {
+            text: systemInstructionText,
+          },
+        ],
+      },
       generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
     });
     const result = await chat.sendMessage(lastMessage.content);
