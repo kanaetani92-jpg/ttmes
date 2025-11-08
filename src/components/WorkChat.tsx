@@ -4,7 +4,22 @@ import Link from 'next/link';
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type { Auth } from 'firebase/auth';
-import { addDoc, collection, doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  startAfter,
+  type DocumentData,
+  type Firestore,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+} from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
 import { useAssessment } from './AssessmentStore';
 import { DEFAULT_STAGE, getStageMetadata } from '@/lib/workChat';
@@ -13,10 +28,28 @@ type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  createdAt: Date | null;
 };
 
 const createMessageId = () => crypto.randomUUID();
 const MAX_MESSAGE_LENGTH = 5000;
+const INITIAL_HISTORY_LIMIT = 5;
+const HISTORY_PAGE_SIZE = 20;
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') {
+    try {
+      const date = value.toDate();
+      if (date instanceof Date && !Number.isNaN(date.getTime())) return date;
+    } catch (error) {
+      console.error('Failed to convert Firestore timestamp', error);
+      return null;
+    }
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
 type SessionInfo = {
   userId: string;
@@ -29,13 +62,30 @@ export function WorkChat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyInitialized, setHistoryInitialized] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const authRef = useRef<Auth | null>(null);
   const dbRef = useRef<Firestore | null>(null);
   const sessionRef = useRef<SessionInfo | null>(null);
   const sessionPromiseRef = useRef<Promise<SessionInfo> | null>(null);
+  const historyCursorRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const historyLoadingRef = useRef(false);
+  const autoScrollRef = useRef(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!autoScrollRef.current) {
+      return;
+    }
     const node = scrollRef.current;
     if (!node) return;
     node.scrollTop = node.scrollHeight;
@@ -48,6 +98,46 @@ export function WorkChat() {
     } catch (firebaseError) {
       console.error('Failed to initialize Firebase for work chat', firebaseError);
       setError((prev) => prev ?? 'Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
+    }
+  }, []);
+
+  const fetchExistingSession = useCallback(async (): Promise<SessionInfo | null> => {
+    try {
+      const auth = authRef.current ?? getFirebaseAuth();
+      authRef.current = auth;
+      const user = auth.currentUser;
+      if (!user) {
+        return null;
+      }
+
+      const db = dbRef.current ?? getFirebaseDb();
+      dbRef.current = db;
+      const sessionsCollection = collection(db, 'users', user.uid, 'workSessions');
+
+      let lastError: unknown = null;
+      for (const field of ['updatedAt', 'createdAt'] as const) {
+        try {
+          const constraints: QueryConstraint[] = [orderBy(field, 'desc'), limit(1)];
+          const snapshot = await getDocs(query(sessionsCollection, ...constraints));
+          if (!snapshot.empty) {
+            const docSnap = snapshot.docs[0];
+            const info: SessionInfo = { userId: user.uid, sessionId: docSnap.id };
+            sessionRef.current = info;
+            return info;
+          }
+        } catch (attemptError) {
+          lastError = attemptError;
+        }
+      }
+
+      if (lastError) {
+        throw lastError;
+      }
+
+      return null;
+    } catch (sessionError) {
+      console.error('Failed to resolve existing work chat session', sessionError);
+      throw sessionError;
     }
   }, []);
 
@@ -92,6 +182,8 @@ export function WorkChat() {
 
       const info: SessionInfo = { userId: user.uid, sessionId: docRef.id };
       sessionRef.current = info;
+      historyCursorRef.current = null;
+      setHasMoreHistory(false);
       return info;
     };
 
@@ -101,6 +193,192 @@ export function WorkChat() {
 
     return sessionPromiseRef.current;
   }, []);
+
+  const loadHistoryBatch = useCallback(
+    async ({ initial = false }: { initial?: boolean } = {}) => {
+      const session = sessionRef.current;
+      if (!session) {
+        return 0;
+      }
+
+      const db = dbRef.current ?? getFirebaseDb();
+      dbRef.current = db;
+
+      const limitCount = initial ? INITIAL_HISTORY_LIMIT : HISTORY_PAGE_SIZE;
+      const messagesCollection = collection(
+        db,
+        'users',
+        session.userId,
+        'workSessions',
+        session.sessionId,
+        'messages',
+      );
+
+      const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+      const cursor = historyCursorRef.current;
+      if (!initial && cursor) {
+        constraints.push(startAfter(cursor));
+      }
+      constraints.push(limit(limitCount));
+
+      const snapshot = await getDocs(query(messagesCollection, ...constraints));
+      if (snapshot.empty) {
+        if (initial) {
+          if (!isMountedRef.current) {
+            return 0;
+          }
+          setMessages([]);
+        }
+        setHasMoreHistory(false);
+        if (initial) {
+          historyCursorRef.current = null;
+        }
+        return 0;
+      }
+
+      historyCursorRef.current = snapshot.docs[snapshot.docs.length - 1];
+      setHasMoreHistory(snapshot.size === limitCount);
+
+      const remoteMessages = snapshot.docs
+        .map((docSnap) => {
+          const data = docSnap.data() as { role?: string; content?: unknown; createdAt?: unknown };
+          const role = data.role === 'assistant' ? 'assistant' : data.role === 'user' ? 'user' : null;
+          const content = typeof data.content === 'string' ? data.content : null;
+          if (!role || !content) {
+            return null;
+          }
+          return {
+            id: docSnap.id,
+            role,
+            content,
+            createdAt: toDate(data.createdAt ?? null),
+          } satisfies ChatMessage;
+        })
+        .filter((message): message is ChatMessage => message !== null)
+        .reverse();
+
+      if (!isMountedRef.current) {
+        return remoteMessages.length;
+      }
+
+      if (initial) {
+        autoScrollRef.current = true;
+        setMessages(remoteMessages);
+        return remoteMessages.length;
+      }
+
+      if (remoteMessages.length === 0) {
+        return 0;
+      }
+
+      const node = scrollRef.current;
+      const previousHeight = node?.scrollHeight ?? 0;
+      const previousTop = node?.scrollTop ?? 0;
+      autoScrollRef.current = false;
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((message) => message.id));
+        const deduped = remoteMessages.filter((message) => !existingIds.has(message.id));
+        if (deduped.length === 0) {
+          return prev;
+        }
+        return [...deduped, ...prev];
+      });
+      if (node) {
+        requestAnimationFrame(() => {
+          const current = scrollRef.current;
+          if (!current) return;
+          const newHeight = current.scrollHeight;
+          current.scrollTop = previousTop + (newHeight - previousHeight);
+        });
+      }
+
+      return remoteMessages.length;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const loadInitialHistory = async () => {
+      historyLoadingRef.current = true;
+      if (isMountedRef.current) {
+        setHistoryLoading(true);
+        setHistoryError(null);
+      }
+      try {
+        const existingSession = await fetchExistingSession();
+        if (!existingSession) {
+          if (isMountedRef.current) {
+            setMessages([]);
+            setHasMoreHistory(false);
+          }
+          return;
+        }
+
+        await loadHistoryBatch({ initial: true });
+      } catch (historyLoadError) {
+        if (active && isMountedRef.current) {
+          console.error('Failed to load work chat history', historyLoadError);
+          setHistoryError('チャット履歴の読み込みに失敗しました。');
+        }
+      } finally {
+        historyLoadingRef.current = false;
+        if (active && isMountedRef.current) {
+          setHistoryLoading(false);
+          setHistoryInitialized(true);
+        }
+      }
+    };
+
+    void loadInitialHistory();
+
+    return () => {
+      active = false;
+    };
+  }, [fetchExistingSession, loadHistoryBatch]);
+
+  const loadMoreHistory = useCallback(async () => {
+    if (historyLoadingRef.current || !hasMoreHistory) {
+      return;
+    }
+
+    historyLoadingRef.current = true;
+    if (isMountedRef.current) {
+      setHistoryLoading(true);
+      setHistoryError(null);
+    }
+
+    try {
+      await loadHistoryBatch();
+    } catch (moreError) {
+      if (isMountedRef.current) {
+        console.error('Failed to load older chat messages', moreError);
+        setHistoryError('これより前のメッセージを読み込めませんでした。');
+      }
+    } finally {
+      historyLoadingRef.current = false;
+      if (isMountedRef.current) {
+        setHistoryLoading(false);
+      }
+    }
+  }, [hasMoreHistory, loadHistoryBatch]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+
+    const handleScroll = () => {
+      if (node.scrollTop <= 40) {
+        void loadMoreHistory();
+      }
+    };
+
+    node.addEventListener('scroll', handleScroll);
+    return () => {
+      node.removeEventListener('scroll', handleScroll);
+    };
+  }, [loadMoreHistory]);
 
   const persistChatMessage = useCallback(
     async (message: ChatMessage) => {
@@ -141,6 +419,7 @@ export function WorkChat() {
   const appendMessage = useCallback(
     (message: ChatMessage, options: { persist?: boolean } = {}) => {
       const { persist = true } = options;
+      autoScrollRef.current = true;
       setMessages((prev) => [...prev, message]);
       if (persist) {
         void persistChatMessage(message);
@@ -155,7 +434,7 @@ export function WorkChat() {
     const content = rawInput.trim();
     if (!content) return;
 
-    const userMessage: ChatMessage = { id: createMessageId(), role: 'user', content };
+    const userMessage: ChatMessage = { id: createMessageId(), role: 'user', content, createdAt: new Date() };
     const nextMessages = [...messages, userMessage];
     appendMessage(userMessage, { persist: false });
     setInput('');
@@ -185,6 +464,7 @@ export function WorkChat() {
         id: createMessageId(),
         role: 'assistant',
         content: json.reply,
+        createdAt: new Date(),
       });
     } catch (err: any) {
       console.error(err);
@@ -259,32 +539,46 @@ export function WorkChat() {
         ref={scrollRef}
         className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
       >
-        <div className="flex min-h-full flex-col justify-end gap-3">
-          {messages.length === 0 ? (
-            <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center shadow-inner">
-              <p className="text-sm leading-relaxed text-gray-300">
-                まだメッセージがありません。最初のメッセージを送ってみましょう。
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
-              >
-                <div
-                  className={clsx(
-                    'max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20',
-                    message.role === 'user'
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                      : 'bg-[#151b39]/90 text-gray-100 backdrop-blur',
-                  )}
-                >
-                  {message.content}
-                </div>
-              </div>
-            ))
-          )}
+        <div className="flex min-h-full flex-col justify-end">
+          <div className="flex flex-col gap-3">
+            {!historyInitialized && historyLoading ? (
+              <div className="text-center text-xs text-gray-400">チャット履歴を読み込み中…</div>
+            ) : (
+              <>
+                {historyLoading && historyInitialized && hasMoreHistory ? (
+                  <div className="text-center text-[11px] text-gray-400">過去のメッセージを読み込み中…</div>
+                ) : null}
+                {historyError ? (
+                  <p className="text-center text-xs text-red-300">{historyError}</p>
+                ) : null}
+                {messages.length === 0 ? (
+                  <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center shadow-inner">
+                    <p className="text-sm leading-relaxed text-gray-300">
+                      まだメッセージがありません。最初のメッセージを送ってみましょう。
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
+                    >
+                      <div
+                        className={clsx(
+                          'max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20',
+                          message.role === 'user'
+                            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                            : 'bg-[#151b39]/90 text-gray-100 backdrop-blur',
+                        )}
+                      >
+                        {message.content}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
