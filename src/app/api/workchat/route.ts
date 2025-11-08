@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
+import { DEFAULT_STAGE, getStageMetadata } from '@/lib/workChat';
 
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -8,6 +9,7 @@ const messageSchema = z.object({
 });
 
 const payloadSchema = z.object({
+  stage: z.enum(['PC', 'C', 'PR', 'A', 'M']).optional(),
   messages: z.array(messageSchema).min(1),
 });
 
@@ -38,6 +40,8 @@ export async function POST(request: NextRequest) {
   }
 
   const messages = parsedBody.messages;
+  const stage = parsedBody.stage ?? DEFAULT_STAGE;
+  const stageMetadata = getStageMetadata(stage);
   const lastMessage = messages[messages.length - 1];
   if (lastMessage.role !== 'user') {
     return NextResponse.json({ error: 'The last message must be from the user.' }, { status: 400 });
@@ -50,8 +54,34 @@ export async function POST(request: NextRequest) {
 
   const history = toGeminiHistory(messages.slice(0, -1));
 
+  const systemInstructionText = `
+あなたは、多理論統合モデル（TTM）に特化した専門のストレスマネジメントコーチです。あなたの役割とルールは以下の通りです。
+
+### 絶対的なルール
+1.  **役割の厳守:** あなたの唯一の役割は、ユーザーの現在のTTMステージに合致した対話を行うことです。応答は、ユーザーが選択したテーマ（例：「自分のストレス反応のパターンを知る」）に厳密に基づいてください。
+2.  **禁止事項:**
+    -   一般的な健康アドバイス（睡眠、食事、運動、ダイエットなど）は、ユーザーから明確に求められない限り、**絶対にしないでください。**
+    -   アスタリスク（*）、シャープ（#）、ハイフン（-）などの記号を使った箇条書きや、その他のマークダウン形式のテキストは**一切使用しないでください。**
+3.  **対話スタイル:**
+    -   全ての応答は、自然な会話形式の平易な文章にしてください。
+    -   常に共感的で、ユーザーを励ます姿勢を保ってください。
+    -   専門用語を避け、ユーザー自身の言葉で考えや感情を引き出すような、具体的な質問を投げかけてください。
+
+### ユーザー情報
+-   **現在のTTMステージ:** ${stageMetadata.stageName}
+-   **このステージの解説:** ${stageMetadata.systemDescription}
+
+### ★コーチング戦略★
+-   **今回の対話における戦略目標:** ${stageMetadata.coachingStrategy}
+
+この戦略目標を念頭に置き、ルールに従ってユーザーのメッセージに応答してください。`; 
+
   try {
-    const chat = model.startChat({ history });
+    const chat = model.startChat({
+      history,
+      systemInstruction: systemInstructionText,
+      generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
+    });
     const result = await chat.sendMessage(lastMessage.content);
     const text = result.response.text();
     if (!text) {

@@ -6,6 +6,8 @@ import clsx from 'clsx';
 import type { Auth } from 'firebase/auth';
 import { addDoc, collection, doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
+import { useAssessment } from './AssessmentStore';
+import { DEFAULT_STAGE, getStageMetadata } from '@/lib/workChat';
 
 type ChatMessage = {
   id: string;
@@ -22,6 +24,7 @@ type SessionInfo = {
 };
 
 export function WorkChat() {
+  const { data: assessmentData, hasHydrated: hasAssessmentHydrated } = useAssessment();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +50,15 @@ export function WorkChat() {
       setError((prev) => prev ?? 'Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
     }
   }, []);
+
+  const stageId = useMemo(() => {
+    if (!hasAssessmentHydrated) {
+      return DEFAULT_STAGE;
+    }
+    return assessmentData.stage ?? DEFAULT_STAGE;
+  }, [assessmentData.stage, hasAssessmentHydrated]);
+
+  const stageMetadata = useMemo(() => getStageMetadata(stageId), [stageId]);
 
   const trimmedInput = useMemo(() => input.trim(), [input]);
   const canSend = trimmedInput.length > 0 && !loading;
@@ -155,6 +167,7 @@ export function WorkChat() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          stage: stageId,
           messages: nextMessages.map(({ role, content: body }) => ({ role, content: body })),
         }),
       });
@@ -198,6 +211,11 @@ export function WorkChat() {
     }
   };
 
+  const handleChoiceSelect = (choice: string) => {
+    if (loading) return;
+    void sendMessage(choice);
+  };
+
   return (
     <section className="card flex h-[min(80vh,600px)] flex-col space-y-4 p-6">
       <header className="flex items-start justify-between gap-3">
@@ -208,6 +226,35 @@ export function WorkChat() {
           トップに戻る
         </Link>
       </header>
+      <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-4 shadow-inner">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">
+              現在のステージ
+            </div>
+            <div className="text-lg font-semibold text-white">{stageMetadata.stageName}</div>
+          </div>
+          <Link href="/assess/stage" className="btn-secondary whitespace-nowrap text-xs sm:text-sm">
+            ステージを変更
+          </Link>
+        </div>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-200">
+          {stageMetadata.description}
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {stageMetadata.choices.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60"
+              onClick={() => handleChoiceSelect(choice)}
+              disabled={loading}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      </div>
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
