@@ -33,8 +33,9 @@ export function WorkChat() {
   const sessionPromiseRef = useRef<Promise<SessionInfo> | null>(null);
 
   useEffect(() => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollTop = 0;
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollTop = node.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
@@ -48,7 +49,6 @@ export function WorkChat() {
   }, []);
 
   const trimmedInput = useMemo(() => input.trim(), [input]);
-  const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
   const canSend = trimmedInput.length > 0 && !loading;
   const remaining = MAX_MESSAGE_LENGTH - input.length;
 
@@ -127,9 +127,12 @@ export function WorkChat() {
   );
 
   const appendMessage = useCallback(
-    (message: ChatMessage) => {
+    (message: ChatMessage, options: { persist?: boolean } = {}) => {
+      const { persist = true } = options;
       setMessages((prev) => [...prev, message]);
-      void persistChatMessage(message);
+      if (persist) {
+        void persistChatMessage(message);
+      }
     },
     [persistChatMessage],
   );
@@ -142,7 +145,7 @@ export function WorkChat() {
 
     const userMessage: ChatMessage = { id: createMessageId(), role: 'user', content };
     const nextMessages = [...messages, userMessage];
-    appendMessage(userMessage);
+    appendMessage(userMessage, { persist: false });
     setInput('');
     setLoading(true);
     setError(null);
@@ -164,6 +167,7 @@ export function WorkChat() {
       const json = (await res.json()) as {
         reply: string;
       };
+      await persistChatMessage(userMessage);
       appendMessage({
         id: createMessageId(),
         role: 'assistant',
@@ -186,7 +190,7 @@ export function WorkChat() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (canSend) {
         void sendMessage(input);
@@ -206,47 +210,53 @@ export function WorkChat() {
       </header>
       <div
         ref={scrollRef}
-        className="flex-1 space-y-3 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1026] p-4"
+        className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
       >
-        {displayedMessages.length === 0 ? null : (
-          displayedMessages.map((message) => (
-            <div
-              key={message.id}
-              className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
-            >
+        <div className="flex min-h-full flex-col justify-end gap-3">
+          {messages.length === 0 ? (
+            <p className="text-center text-sm text-gray-400">
+              まだメッセージがありません。最初のメッセージを送ってみましょう。
+            </p>
+          ) : (
+            messages.map((message) => (
               <div
-                className={clsx(
-                  'max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed',
-                  message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-[#151b39] text-gray-100',
-                )}
+                key={message.id}
+                className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
               >
-                {message.content}
+                <div
+                  className={clsx(
+                    'max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20',
+                    message.role === 'user'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                      : 'bg-[#151b39]/90 text-gray-100 backdrop-blur',
+                  )}
+                >
+                  {message.content}
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-2">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {error ? <p className="text-xs text-red-300">{error}</p> : null}
-        <div className="rounded-xl border border-white/10 bg-[#0f1530] p-3">
+        <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={MAX_MESSAGE_LENGTH}
-            rows={5}
-            className="h-32 w-full resize-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
-            placeholder="例：こんにちは！"
+            rows={4}
+            className="min-h-[96px] flex-1 resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
+            placeholder="メッセージを入力"
           />
+          <button type="submit" className="btn whitespace-nowrap" disabled={!canSend}>
+            {loading ? '送信中…' : '送信'}
+          </button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
           <span>残り文字数: {Math.max(0, remaining)}</span>
-          <span>Enterで改行 / Shift+Enterで送信</span>
-        </div>
-        <div className="flex justify-end">
-          <button type="submit" className="btn" disabled={!canSend}>
-            {loading ? '送信中…' : '送信'}
-          </button>
+          <span>Shift+Enterで改行 / Enterで送信</span>
         </div>
       </form>
     </section>
