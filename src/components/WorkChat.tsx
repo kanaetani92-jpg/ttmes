@@ -5,23 +5,12 @@ import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useS
 import clsx from 'clsx';
 import type { Auth } from 'firebase/auth';
 import { addDoc, collection, doc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
-import type { StageGuide } from '@/data/stageGuides';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebaseClient';
-import { useAssessment } from './AssessmentStore';
-import { StageGuideMessage } from './StageGuideMessage';
-import { WorkPlanMessage, type WorkPlan } from './WorkPlanMessage';
 
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  plan?: WorkPlan;
-  guide?: StageGuide;
-};
-
-type ChatContext = {
-  stage?: string;
-  bands?: Record<string, unknown>;
 };
 
 const createMessageId = () => crypto.randomUUID();
@@ -32,54 +21,21 @@ type SessionInfo = {
   sessionId: string;
 };
 
-const parseWorkPlan = (reply: string): WorkPlan | undefined => {
-  try {
-    const parsed = JSON.parse(reply);
-    if (!parsed || typeof parsed !== 'object') {
-      return undefined;
-    }
-
-    if (typeof parsed.intro !== 'string') {
-      return undefined;
-    }
-
-    const today = (parsed as any).today_action;
-    if (!today || typeof today !== 'object') {
-      return undefined;
-    }
-    if (typeof today.title !== 'string' || !Array.isArray(today.steps)) {
-      return undefined;
-    }
-
-    return parsed as WorkPlan;
-  } catch (error) {
-    return undefined;
-  }
-};
-
 export function WorkChat() {
-  const { data, hasHydrated } = useAssessment();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [context, setContext] = useState<ChatContext>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const authRef = useRef<Auth | null>(null);
   const dbRef = useRef<Firestore | null>(null);
   const sessionRef = useRef<SessionInfo | null>(null);
   const sessionPromiseRef = useRef<Promise<SessionInfo> | null>(null);
-  const assessmentSnapshotRef = useRef(data);
-  const hasStartedRef = useRef(false);
 
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = 0;
   }, [messages]);
-
-  useEffect(() => {
-    assessmentSnapshotRef.current = data;
-  }, [data]);
 
   useEffect(() => {
     try {
@@ -93,7 +49,7 @@ export function WorkChat() {
 
   const trimmedInput = useMemo(() => input.trim(), [input]);
   const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
-  const canSend = trimmedInput.length > 0 && !loading && hasHydrated;
+  const canSend = trimmedInput.length > 0 && !loading;
   const remaining = MAX_MESSAGE_LENGTH - input.length;
 
   const ensureSession = useCallback(async (): Promise<SessionInfo> => {
@@ -119,7 +75,7 @@ export function WorkChat() {
       const docRef = await addDoc(sessionsCollection, {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        assessmentSnapshot: assessmentSnapshotRef.current,
+        assessmentSnapshot: null,
       });
 
       const info: SessionInfo = { userId: user.uid, sessionId: docRef.id };
@@ -151,8 +107,6 @@ export function WorkChat() {
         const payload: Record<string, unknown> = {
           role: message.role,
           content: message.content,
-          plan: message.plan ?? null,
-          guide: message.guide ?? null,
           createdAt: serverTimestamp(),
         };
         await addDoc(messagesCollection, payload);
@@ -180,35 +134,8 @@ export function WorkChat() {
     [persistChatMessage],
   );
 
-  useEffect(() => {
-    if (!context.stage && !context.bands) {
-      return;
-    }
-
-    const persistContext = async () => {
-      try {
-        const session = await ensureSession();
-        const db = dbRef.current ?? getFirebaseDb();
-        dbRef.current = db;
-        const sessionDoc = doc(db, 'users', session.userId, 'workSessions', session.sessionId);
-        await setDoc(
-          sessionDoc,
-          {
-            contextSnapshot: context,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
-      } catch (firebaseError) {
-        console.error('Failed to persist work chat context', firebaseError);
-      }
-    };
-
-    void persistContext();
-  }, [context, ensureSession]);
-
   const sendMessage = async (rawInput: string) => {
-    if (loading || !hasHydrated) return;
+    if (loading) return;
 
     const content = rawInput.trim();
     if (!content) return;
@@ -226,7 +153,6 @@ export function WorkChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: nextMessages.map(({ role, content: body }) => ({ role, content: body })),
-          assessment: data,
         }),
       });
 
@@ -237,19 +163,12 @@ export function WorkChat() {
 
       const json = (await res.json()) as {
         reply: string;
-        stage?: string;
-        bands?: Record<string, unknown>;
-        guide?: StageGuide;
       };
-      const plan = parseWorkPlan(json.reply.trim());
       appendMessage({
         id: createMessageId(),
         role: 'assistant',
         content: json.reply,
-        plan,
-        guide: json.guide,
       });
-      setContext({ stage: json.stage, bands: json.bands });
     } catch (err: any) {
       console.error(err);
       setError(err?.message ?? 'チャットの呼び出しに失敗しました。');
@@ -275,76 +194,11 @@ export function WorkChat() {
     }
   };
 
-  useEffect(() => {
-    if (!hasHydrated || hasStartedRef.current || loading || messages.length > 0) {
-      return;
-    }
-
-    hasStartedRef.current = true;
-
-    const kickoff = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/workchat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{ role: 'user' as const, content: 'ワークブックを始めたいです。' }],
-            assessment: data,
-          }),
-        });
-
-        if (!res.ok) {
-          const message = await res.text();
-          throw new Error(message || 'チャットの呼び出しに失敗しました。');
-        }
-
-        const json = (await res.json()) as {
-          reply: string;
-          stage?: string;
-          bands?: Record<string, unknown>;
-          guide?: StageGuide;
-        };
-        const reply = json.reply.trim();
-        const plan = parseWorkPlan(reply);
-        appendMessage({
-          id: createMessageId(),
-          role: 'assistant',
-          content: json.reply,
-          plan,
-          guide: json.guide,
-        });
-        setContext({ stage: json.stage, bands: json.bands });
-      } catch (err: any) {
-        console.error(err);
-        setError(err?.message ?? 'チャットの呼び出しに失敗しました。');
-        hasStartedRef.current = false;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void kickoff();
-  }, [appendMessage, data, hasHydrated, loading, messages.length]);
-
-  if (!hasHydrated) {
-    return (
-      <section className="card space-y-4 p-6">
-        <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
-        <p className="text-sm text-gray-400">読み込み中です…</p>
-      </section>
-    );
-  }
-
   return (
     <section className="card flex h-[min(80vh,600px)] flex-col space-y-4 p-6">
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
-          {context.stage ? (
-            <p className="text-xs text-gray-500">{`ステージ: ${context.stage}`}</p>
-          ) : null}
         </div>
         <Link href="/" className="btn-secondary whitespace-nowrap text-xs sm:text-sm">
           トップに戻る
@@ -366,17 +220,7 @@ export function WorkChat() {
                   message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-[#151b39] text-gray-100',
                 )}
               >
-                {message.role === 'assistant' ? (
-                  message.guide ? (
-                    <StageGuideMessage guide={message.guide} />
-                  ) : message.plan ? (
-                    <WorkPlanMessage plan={message.plan} />
-                  ) : (
-                    message.content
-                  )
-                ) : (
-                  message.content
-                )}
+                {message.content}
               </div>
             </div>
           ))
@@ -392,7 +236,7 @@ export function WorkChat() {
             maxLength={MAX_MESSAGE_LENGTH}
             rows={5}
             className="h-32 w-full resize-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
-            placeholder="例：今日はどこから始めればいい？"
+            placeholder="例：こんにちは！"
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
