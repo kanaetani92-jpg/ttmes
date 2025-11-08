@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 import { signOut } from 'firebase/auth';
 import { useAssessment } from './AssessmentStore';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { WorkLinkButton } from './WorkLinkButton';
 
 type RestartAssessmentButtonProps = {
   className?: string;
@@ -85,11 +86,7 @@ export function AssessmentActions({ showRestartButton = true, showWorkLink = tru
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap justify-end gap-2">
-        {showWorkLink ? (
-          <Link className="btn" href="/work">
-            ワーク画面へ（試験運用）
-          </Link>
-        ) : null}
+        {showWorkLink ? <WorkLinkButton /> : null}
         {showRestartButton ? <RestartAssessmentButton onRestart={() => setActionError(null)} /> : null}
         <Link className="btn" href="/assess/history#assessment-history">
           過去の回答
