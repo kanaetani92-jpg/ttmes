@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { AuthGate } from '@/components/AuthGate';
 import { AssessmentProvider } from '@/components/AssessmentStore';
 import { AssessmentActions, RestartAssessmentButton } from '@/components/AssessmentActions';
+import { WorkLinkButton } from '@/components/WorkLinkButton';
 
 export default function HomePage() {
   return (
@@ -16,9 +16,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col gap-3 sm:w-fit">
               <RestartAssessmentButton className="w-full text-center sm:w-64">回答をはじめる</RestartAssessmentButton>
-              <Link className="btn w-full text-center sm:w-64" href="/work">
-                ワーク画面へ（試験運用）
-              </Link>
+              <WorkLinkButton className="w-full text-center sm:w-64" />
             </div>
           </section>
         </div>
