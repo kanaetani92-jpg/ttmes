@@ -497,7 +497,7 @@ export function WorkChat() {
   };
 
   return (
-    <section className="card flex h-[min(80vh,600px)] flex-col space-y-4 p-6">
+    <section className="card flex h-[min(90vh,800px)] flex-col space-y-4 p-6">
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
