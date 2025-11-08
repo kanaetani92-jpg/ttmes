@@ -537,7 +537,7 @@ export function WorkChat() {
       </div>
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
+        className="flex-1 min-h-[360px] overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
       >
         <div className="flex min-h-full flex-col justify-end">
           <div className="flex flex-col gap-3">
