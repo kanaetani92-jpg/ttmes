@@ -241,12 +241,12 @@ export function WorkChat() {
         <p className="whitespace-pre-line text-sm leading-relaxed text-gray-200">
           {stageMetadata.description}
         </p>
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div className="flex flex-col gap-2 pt-1">
           {stageMetadata.choices.map((choice) => (
             <button
               key={choice}
               type="button"
-              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60"
+              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60"
               onClick={() => handleChoiceSelect(choice)}
               disabled={loading}
             >
@@ -261,9 +261,11 @@ export function WorkChat() {
       >
         <div className="flex min-h-full flex-col justify-end gap-3">
           {messages.length === 0 ? (
-            <p className="text-center text-sm text-gray-400">
-              まだメッセージがありません。最初のメッセージを送ってみましょう。
-            </p>
+            <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center shadow-inner">
+              <p className="text-sm leading-relaxed text-gray-300">
+                まだメッセージがありません。最初のメッセージを送ってみましょう。
+              </p>
+            </div>
           ) : (
             messages.map((message) => (
               <div
