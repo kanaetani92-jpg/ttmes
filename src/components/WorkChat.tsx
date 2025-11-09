@@ -51,17 +51,16 @@ const normalizeExampleText = (value: string): string => {
 };
 
 const extractExampleChoices = (content: string): string[] => {
-  const index = content.indexOf('例えば');
-  if (index === -1) {
-    return [];
-  }
-
   const seen = new Set<string>();
-  const lines = content.slice(index).split(/\r?\n/);
+  const normalizedContent = content.replace(/\r?\n/g, '\n');
+  const exampleIndex = normalizedContent.indexOf('例えば');
+  const targetForInline = exampleIndex === -1 ? normalizedContent : normalizedContent.slice(exampleIndex);
+  const lines = targetForInline.split('\n');
 
   if (lines.length > 0) {
     const firstLine = lines[0];
-    const inlineSegment = firstLine.slice(firstLine.indexOf('例えば') + '例えば'.length);
+    const inlineStart = firstLine.indexOf('例えば');
+    const inlineSegment = inlineStart === -1 ? '' : firstLine.slice(inlineStart + '例えば'.length);
     if (inlineSegment.trim().length > 0) {
       const inlineCandidates = inlineSegment
         .replace(/^[、,。．｡\s]+/gu, '')
@@ -74,12 +73,10 @@ const extractExampleChoices = (content: string): string[] => {
     }
   }
 
-  for (let i = 1; i < lines.length; i += 1) {
-    const trimmed = lines[i].trim();
+  const allLines = normalizedContent.split('\n');
+  for (const rawLine of allLines) {
+    const trimmed = rawLine.trim();
     if (!trimmed) {
-      if (seen.size > 0) {
-        continue;
-      }
       continue;
     }
     const match = trimmed.match(BULLET_PATTERN);
@@ -88,10 +85,6 @@ const extractExampleChoices = (content: string): string[] => {
       if (choice) {
         seen.add(choice);
       }
-      continue;
-    }
-    if (seen.size > 0) {
-      break;
     }
   }
 
