@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
           },
         ],
       },
-      generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
+      generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
     });
     const result = await chat.sendMessage(lastMessage.content);
     const text = result.response.text();
