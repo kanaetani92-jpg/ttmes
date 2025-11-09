@@ -6,14 +6,11 @@ const requestSchema = z.object({
   prompt: z.string().min(1).max(4000),
 });
 
-const userFriendlySchema = z.object({
+const evaluationSchema = z.object({
   userFriendly: z.object({
     value: z.boolean(),
     reason: z.string().min(1).max(2000),
   }),
-});
-
-const alignmentSchema = z.object({
   ttmAligned: z.object({
     value: z.boolean(),
     reason: z.string().min(1).max(2000),
@@ -105,18 +102,15 @@ export async function POST(request: NextRequest) {
   const modelId = process.env.GEMINI_MODEL_ID || process.env.MODEL_NAME || defaultModelId;
   const model = genAI.getGenerativeModel({ model: modelId });
 
-  const userFriendlyPrompt = `あなたはメンタルヘルス支援サービスの品質管理担当者です。以下のボタンラベルの文章が、専門的な知識がないユーザーにも分かりやすく親しみやすい表現になっているかを評価してください。結果は日本語で簡潔に説明し、以下のJSON形式のみで出力してください。\n\n出力フォーマット:\n{\n  "userFriendly": {\n    "value": true または false,\n    "reason": "評価の理由"\n  }\n}\n\n評価対象:\n"""${body.prompt}"""`;
-
-  const alignmentPrompt = `あなたは多理論統合モデル(TTM)とストレスマネジメントの専門家です。以下のボタンラベルの文章がTTMの観点から適切か、そしてストレスマネジメントに明確に関連しているかを評価してください。それぞれの評価は「true」または「false」で返し、理由を日本語で簡潔に説明してください。出力は次のJSON形式のみで返してください。\n\n出力フォーマット:\n{\n  "ttmAligned": {\n    "value": true または false,\n    "reason": "TTMとの整合性に関する理由"\n  },\n  "stressManagementRelated": {\n    "value": true または false,\n    "reason": "ストレスマネジメントとの関連性に関する理由"\n  }\n}\n\n評価対象:\n"""${body.prompt}"""`;
+  const evaluationPrompt = `あなたはメンタルヘルス支援サービスの品質管理担当者であり、多理論統合モデル(TTM)とストレスマネジメントの専門家でもあります。以下のボタンラベルの文章について、次の3つの観点から評価してください。各評価は「true」または「false」で返し、理由を日本語で簡潔に説明してください。出力は必ず以下のJSON形式のみで返してください。\n\n出力フォーマット:\n{\n  "userFriendly": {\n    "value": true または false,\n    "reason": "ユーザーにとって分かりやすいかの理由"\n  },\n  "ttmAligned": {\n    "value": true または false,\n    "reason": "TTMとの整合性に関する理由"\n  },\n  "stressManagementRelated": {\n    "value": true または false,\n    "reason": "ストレスマネジメントとの関連性に関する理由"\n  }\n}\n\n評価対象:\n"""${body.prompt}"""`;
 
   try {
-    const userFriendly = await callGeminiForJson(model, userFriendlyPrompt, userFriendlySchema, 'user-friendliness evaluation');
-    const alignment = await callGeminiForJson(model, alignmentPrompt, alignmentSchema, 'TTM/stress-management evaluation');
+    const evaluation = await callGeminiForJson(model, evaluationPrompt, evaluationSchema, 'workchat example evaluation');
 
     return NextResponse.json({
-      userFriendly: userFriendly.userFriendly,
-      ttmAligned: alignment.ttmAligned,
-      stressManagementRelated: alignment.stressManagementRelated,
+      userFriendly: evaluation.userFriendly,
+      ttmAligned: evaluation.ttmAligned,
+      stressManagementRelated: evaluation.stressManagementRelated,
     });
   } catch (error: any) {
     console.error('Failed to evaluate example prompt with Gemini', error);
