@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
 
@@ -27,7 +28,37 @@ export default function RisciPage() {
   const searchParams = useSearchParams();
   const reviewMode = searchParams.get('review') === '1';
   const reviewQuery = reviewMode ? '?review=1' : '';
+  const router = useRouter();
   const { data, setLikert } = useAssessment();
+  const [error, setError] = useState<string | null>(null);
+
+  const hasUnanswered = useMemo(() => {
+    if (reviewMode) {
+      return false;
+    }
+    return [data.risci.stress, data.risci.coping].some((group) =>
+      group.some((value) => value === null),
+    );
+  }, [data.risci.coping, data.risci.stress, reviewMode]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    if (!hasUnanswered) {
+      setError(null);
+    }
+  }, [error, hasUnanswered]);
+
+  const handleNext = () => {
+    if (hasUnanswered) {
+      setError('未回答の項目があります。すべての質問に回答してください。');
+      return;
+    }
+
+    router.push(`/assess/sma${reviewQuery}`);
+  };
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -42,7 +73,10 @@ export default function RisciPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.risci.stress[index]}
-                onChange={(v) => setLikert('risci.stress', index, v)}
+                onChange={(v) => {
+                  setLikert('risci.stress', index, v);
+                  setError(null);
+                }}
                 disabled={reviewMode}
                 labels={RISCI_CHOICES}
               />
@@ -56,7 +90,10 @@ export default function RisciPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.risci.coping[index]}
-                onChange={(v) => setLikert('risci.coping', index, v)}
+                onChange={(v) => {
+                  setLikert('risci.coping', index, v);
+                  setError(null);
+                }}
                 disabled={reviewMode}
                 labels={RISCI_CHOICES}
               />
@@ -64,13 +101,14 @@ export default function RisciPage() {
           ))}
         </div>
       </section>
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/stage${reviewQuery}`}>
           戻る
         </Link>
-        <Link className="btn" href={`/assess/sma${reviewQuery}`}>
+        <button type="button" className="btn" onClick={handleNext}>
           次へ（SMA）
-        </Link>
+        </button>
       </div>
     </div>
   );

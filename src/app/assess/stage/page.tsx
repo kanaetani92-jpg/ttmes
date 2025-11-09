@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react'; // type MouseEvent を削除
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
@@ -86,8 +85,9 @@ export default function StagePage() {
   const searchParams = useSearchParams();
   const { setStage: setAssessmentStage } = useAssessment();
   const [stage, setStage] = useState<Stage | null>(null);
+  const [stageError, setStageError] = useState<string | null>(null);
   // ⛔️ stageError state を削除
-  
+
   // 既存保存値を読み込み（任意）
   useEffect(() => {
     const storedStage = loadStoredStage();
@@ -103,7 +103,7 @@ export default function StagePage() {
     (nextStage: Stage) => {
       setStage(nextStage);
       setAssessmentStage(nextStage);
-      // ⛔️ setStageError(null) を削除
+      setStageError(null);
       persistStage(nextStage);
     },
     [setAssessmentStage],
@@ -131,10 +131,20 @@ export default function StagePage() {
   useEffect(() => {
     if (!restartToken) return;
     setStage(null);
-    // ⛔️ setStageError(null) を削除
+    setStageError(null);
     clearStoredStage();
     router.replace(restartPath);
   }, [restartPath, restartToken, router]);
+
+  const handleNext = useCallback(() => {
+    if (!stage) {
+      setStageError('次に進む前に、いずれかの選択肢を選んでください。');
+      return;
+    }
+
+    setStageError(null);
+    router.push(nextPath);
+  }, [nextPath, router, stage]);
 
   return (
     <div className="space-y-4">
@@ -176,12 +186,12 @@ export default function StagePage() {
           ))}
         </div>
 
-        {/* ⛔️ stageErrorの表示部分を削除 */}
+        {stageError ? <p className="text-sm text-red-300">{stageError}</p> : null}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <Link className="btn" href={nextPath}>
+          <button type="button" className="btn" onClick={handleNext} aria-disabled={!stage}>
             次へ（RISCIへ進む）
-          </Link>
+          </button>
         </div>
       </div>
     </div>

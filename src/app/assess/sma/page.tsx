@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
+import type { Likert5 as Likert5Value } from '@/lib/assessment';
 
 const PLAN = ['早め早めにやるべきことを片付けた', '計画的に自分の時間を使った'];
 const REFRAME = ['うまくいかないような場面でも、努めて楽しくした', '仕事が続いた後は、自分にご褒美をあげた'];
@@ -20,7 +22,42 @@ export default function SmaPage() {
   const searchParams = useSearchParams();
   const reviewMode = searchParams.get('review') === '1';
   const reviewQuery = reviewMode ? '?review=1' : '';
+  const router = useRouter();
   const { data, setLikert } = useAssessment();
+  const [error, setError] = useState<string | null>(null);
+
+  const hasUnanswered = useMemo(() => {
+    if (reviewMode) {
+      return false;
+    }
+    return [data.sma.planning, data.sma.reframing, data.sma.healthy].some((group) =>
+      group.some((value) => value === null),
+    );
+  }, [data.sma.healthy, data.sma.planning, data.sma.reframing, reviewMode]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    if (!hasUnanswered) {
+      setError(null);
+    }
+  }, [error, hasUnanswered]);
+
+  const handleNext = () => {
+    if (hasUnanswered) {
+      setError('未回答の項目があります。すべての質問に回答してください。');
+      return;
+    }
+
+    router.push(`/assess/pssm${reviewQuery}`);
+  };
+
+  const handleChange = (path: string, index: number) => (value: Likert5Value) => {
+    setLikert(path, index, value);
+    setError(null);
+  };
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -35,7 +72,7 @@ export default function SmaPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.planning[index]}
-                onChange={(v) => setLikert('sma.planning', index, v)}
+                onChange={handleChange('sma.planning', index)}
                 disabled={reviewMode}
                 labels={SMA_CHOICES}
               />
@@ -49,7 +86,7 @@ export default function SmaPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.reframing[index]}
-                onChange={(v) => setLikert('sma.reframing', index, v)}
+                onChange={handleChange('sma.reframing', index)}
                 disabled={reviewMode}
                 labels={SMA_CHOICES}
               />
@@ -63,7 +100,7 @@ export default function SmaPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.sma.healthy[index]}
-                onChange={(v) => setLikert('sma.healthy', index, v)}
+                onChange={handleChange('sma.healthy', index)}
                 disabled={reviewMode}
                 labels={SMA_CHOICES}
               />
@@ -71,13 +108,14 @@ export default function SmaPage() {
           ))}
         </div>
       </section>
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/risci${reviewQuery}`}>
           戻る
         </Link>
-        <Link className="btn" href={`/assess/pssm${reviewQuery}`}>
+        <button type="button" className="btn" onClick={handleNext}>
           次へ（PSSM）
-        </Link>
+        </button>
       </div>
     </div>
   );
