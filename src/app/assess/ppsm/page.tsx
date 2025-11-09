@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAssessment } from '@/components/AssessmentStore';
 import { Likert5 } from '@/components/forms/Likert5';
+import type { Likert5 as Likert5Value } from '@/lib/assessment';
 
 const EXP = [
   'ストレスをコントロールする健康的なやり方についての情報を求めた',
@@ -31,7 +33,42 @@ export default function PpsmPage() {
   const searchParams = useSearchParams();
   const reviewMode = searchParams.get('review') === '1';
   const reviewQuery = reviewMode ? '?review=1' : '';
+  const router = useRouter();
   const { data, setLikert } = useAssessment();
+  const [error, setError] = useState<string | null>(null);
+
+  const hasUnanswered = useMemo(() => {
+    if (reviewMode) {
+      return false;
+    }
+    return [data.ppsm.experiential, data.ppsm.behavioral].some((group) =>
+      group.some((value) => value === null),
+    );
+  }, [data.ppsm.behavioral, data.ppsm.experiential, reviewMode]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    if (!hasUnanswered) {
+      setError(null);
+    }
+  }, [error, hasUnanswered]);
+
+  const handleNext = () => {
+    if (hasUnanswered) {
+      setError('未回答の項目があります。すべての質問に回答してください。');
+      return;
+    }
+
+    router.push(`/assess/feedback${reviewQuery}`);
+  };
+
+  const handleChange = (path: string, index: number) => (value: Likert5Value) => {
+    setLikert(path, index, value);
+    setError(null);
+  };
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -46,7 +83,7 @@ export default function PpsmPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.ppsm.experiential[index]}
-                onChange={(v) => setLikert('ppsm.experiential', index, v)}
+                onChange={handleChange('ppsm.experiential', index)}
                 disabled={reviewMode}
                 labels={PPSM_CHOICES}
               />
@@ -60,7 +97,7 @@ export default function PpsmPage() {
               <p className="text-sm leading-relaxed">{question}</p>
               <Likert5
                 value={data.ppsm.behavioral[index]}
-                onChange={(v) => setLikert('ppsm.behavioral', index, v)}
+                onChange={handleChange('ppsm.behavioral', index)}
                 disabled={reviewMode}
                 labels={PPSM_CHOICES}
               />
@@ -68,13 +105,14 @@ export default function PpsmPage() {
           ))}
         </div>
       </section>
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link className="btn" href={`/assess/pdsm${reviewQuery}`}>
           戻る
         </Link>
-        <Link className="btn" href={`/assess/feedback${reviewQuery}`}>
+        <button type="button" className="btn" onClick={handleNext}>
           次へ（フィードバック）
-        </Link>
+        </button>
       </div>
     </div>
   );

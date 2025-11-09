@@ -99,6 +99,16 @@ const extractExampleChoices = (content: string): string[] => {
   return Array.from(seen);
 };
 
+const buildExampleChoicePrompt = (choice: string): string => {
+  const normalized = normalizeExampleText(choice);
+  return normalized ? `「${normalized}」について詳しく教えてください。` : '';
+};
+
+const buildStageChoicePrompt = (choice: string): string => {
+  const normalized = normalizeExampleText(choice);
+  return normalized ? `「${normalized}」に取り組みたいです。` : '';
+};
+
 const toDate = (value: any): Date | null => {
   if (!value) return null;
   if (typeof value.toDate === 'function') {
@@ -865,17 +875,23 @@ export function WorkChat() {
             {stageMetadata.description}
           </p>
           <div className="flex flex-col gap-2 pt-1">
-            {stageMetadata.choices.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
-                onClick={() => handleChoiceSelect(choice)}
-                disabled={loading}
-              >
-                {choice}
-              </button>
-            ))}
+            {stageMetadata.choices.map((choice) => {
+              const prompt = buildStageChoicePrompt(choice);
+              if (!prompt) {
+                return null;
+              }
+              return (
+                <button
+                  key={choice}
+                  type="button"
+                  className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
+                  onClick={() => handleChoiceSelect(prompt)}
+                  disabled={loading}
+                >
+                  {prompt}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-4">
@@ -920,17 +936,23 @@ export function WorkChat() {
                             </div>
                             {isAssistant && exampleChoices.length > 0 ? (
                               <div className="flex max-w-[85%] flex-col gap-2">
-                                {exampleChoices.map((choice) => (
-                                  <button
-                                    key={choice}
-                                    type="button"
-                                    className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
-                                    onClick={() => handleChoiceSelect(choice)}
-                                    disabled={loading}
-                                  >
-                                    {choice}
-                                  </button>
-                                ))}
+                                {exampleChoices.map((choice) => {
+                                  const prompt = buildExampleChoicePrompt(choice);
+                                  if (!prompt) {
+                                    return null;
+                                  }
+                                  return (
+                                    <button
+                                      key={choice}
+                                      type="button"
+                                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
+                                      onClick={() => handleChoiceSelect(prompt)}
+                                      disabled={loading}
+                                    >
+                                      {prompt}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             ) : null}
                           </div>
