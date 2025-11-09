@@ -992,6 +992,10 @@ export function WorkChat() {
           </p>
           <div className="flex flex-col gap-2 pt-1">
             {stageMetadata.choices.map((choice) => {
+              const normalizedChoice = normalizeExampleText(choice);
+              if (!normalizedChoice) {
+                return null;
+              }
               const prompt = buildStageChoicePrompt(choice);
               if (!prompt) {
                 return null;
@@ -1004,7 +1008,7 @@ export function WorkChat() {
                   onClick={() => handleChoiceSelect(prompt)}
                   disabled={loading}
                 >
-                  {prompt}
+                  {normalizedChoice}
                 </button>
               );
             })}
