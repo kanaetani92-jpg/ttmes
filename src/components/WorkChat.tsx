@@ -39,10 +39,18 @@ type ChatMessage = {
   createdAt: Date | null;
 };
 
+type SessionSummary = {
+  id: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+
 const createMessageId = () => crypto.randomUUID();
 const MAX_MESSAGE_LENGTH = 5000;
 const INITIAL_HISTORY_LIMIT = 5;
 const HISTORY_PAGE_SIZE = 5;
+const SESSION_SUMMARY_LIMIT = 20;
+const RECENT_SESSION_BUTTON_COUNT = 3;
 
 const BULLET_PATTERN = /^(?:[・\-‐*●○▲▼]|[0-9０-９]+[.)）]|[a-zA-Z]+[.)）])\s*(.+)$/;
 
@@ -111,6 +119,22 @@ type SessionInfo = {
   sessionId: string;
 };
 
+const sessionDateFormatter = new Intl.DateTimeFormat('ja-JP', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const formatSessionLabel = (summary: SessionSummary, index: number): string => {
+  const target = summary.updatedAt ?? summary.createdAt;
+  if (!target) {
+    return `チャット ${index + 1}`;
+  }
+  return `${sessionDateFormatter.format(target)} 更新`;
+};
+
 export function WorkChat() {
   const { data: assessmentData, hasHydrated: hasAssessmentHydrated } = useAssessment();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -121,6 +145,9 @@ export function WorkChat() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [sessionSummaries, setSessionSummaries] = useState<SessionSummary[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isMobileInputMode, setIsMobileInputMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const authRef = useRef<Auth | null>(null);
@@ -172,13 +199,21 @@ export function WorkChat() {
     return () => mediaQuery.removeListener(updateMode);
   }, []);
 
-  const fetchExistingSession = useCallback(async (): Promise<SessionInfo | null> => {
+  const refreshSessionSummaries = useCallback(async (): Promise<{ summaries: SessionSummary[]; userId: string | null }> => {
+    if (isMountedRef.current) {
+      setSessionsLoading(true);
+    }
+
     try {
       const auth = authRef.current ?? getFirebaseAuth();
       authRef.current = auth;
       const user = auth.currentUser;
       if (!user) {
-        return null;
+        if (isMountedRef.current) {
+          setSessionSummaries([]);
+          setActiveSessionId(null);
+        }
+        return { summaries: [], userId: null };
       }
 
       const db = dbRef.current ?? getFirebaseDb();
@@ -188,14 +223,20 @@ export function WorkChat() {
       let lastError: unknown = null;
       for (const field of ['updatedAt', 'createdAt'] as const) {
         try {
-          const constraints: QueryConstraint[] = [orderBy(field, 'desc'), limit(1)];
+          const constraints: QueryConstraint[] = [orderBy(field, 'desc'), limit(SESSION_SUMMARY_LIMIT)];
           const snapshot = await getDocs(query(sessionsCollection, ...constraints));
-          if (!snapshot.empty) {
-            const docSnap = snapshot.docs[0];
-            const info: SessionInfo = { userId: user.uid, sessionId: docSnap.id };
-            sessionRef.current = info;
-            return info;
+          const summaries = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data() as { createdAt?: unknown; updatedAt?: unknown };
+            return {
+              id: docSnap.id,
+              createdAt: toDate(data.createdAt ?? null),
+              updatedAt: toDate(data.updatedAt ?? null),
+            } satisfies SessionSummary;
+          });
+          if (isMountedRef.current) {
+            setSessionSummaries(summaries);
           }
+          return { summaries, userId: user.uid };
         } catch (attemptError) {
           lastError = attemptError;
         }
@@ -205,12 +246,46 @@ export function WorkChat() {
         throw lastError;
       }
 
-      return null;
+      if (isMountedRef.current) {
+        setSessionSummaries([]);
+      }
+      return { summaries: [], userId: user.uid };
+    } catch (sessionError) {
+      if (isMountedRef.current) {
+        setSessionSummaries([]);
+      }
+      console.error('Failed to refresh work chat sessions', sessionError);
+      throw sessionError;
+    } finally {
+      if (isMountedRef.current) {
+        setSessionsLoading(false);
+      }
+    }
+  }, []);
+
+  const fetchExistingSession = useCallback(async (): Promise<SessionInfo | null> => {
+    try {
+      const { summaries, userId } = await refreshSessionSummaries();
+      if (!userId || summaries.length === 0) {
+        sessionRef.current = null;
+        return null;
+      }
+
+      const sessionId = summaries[0]?.id;
+      if (!sessionId) {
+        sessionRef.current = null;
+        return null;
+      }
+
+      const info: SessionInfo = { userId, sessionId };
+      sessionRef.current = info;
+      setActiveSessionId((prev) => prev ?? sessionId);
+      return info;
     } catch (sessionError) {
       console.error('Failed to resolve existing work chat session', sessionError);
       throw sessionError;
     }
-  }, []);
+  }, [refreshSessionSummaries]);
 
   const stageId = useMemo(() => {
     if (!hasAssessmentHydrated) {
@@ -224,6 +299,21 @@ export function WorkChat() {
   const trimmedInput = useMemo(() => input.trim(), [input]);
   const canSend = trimmedInput.length > 0 && !loading;
   const remaining = MAX_MESSAGE_LENGTH - input.length;
+  const recentSessions = useMemo(
+    () => sessionSummaries.slice(0, RECENT_SESSION_BUTTON_COUNT),
+    [sessionSummaries],
+  );
+  const olderSessions = useMemo(
+    () => sessionSummaries.slice(RECENT_SESSION_BUTTON_COUNT),
+    [sessionSummaries],
+  );
+  const olderSelectValue = useMemo(() => {
+    if (!activeSessionId) {
+      return '';
+    }
+    return olderSessions.some((session) => session.id === activeSessionId) ? activeSessionId : '';
+  }, [activeSessionId, olderSessions]);
+  const controlsDisabled = historyLoading || sessionsLoading;
 
   const ensureSession = useCallback(async (): Promise<SessionInfo> => {
     if (sessionRef.current) {
@@ -255,6 +345,17 @@ export function WorkChat() {
       sessionRef.current = info;
       historyCursorRef.current = null;
       setHasMoreHistory(false);
+      setActiveSessionId(info.sessionId);
+      setSessionSummaries((prev) => {
+        const now = new Date();
+        const filtered = prev.filter((summary) => summary.id !== info.sessionId);
+        const updated: SessionSummary = {
+          id: info.sessionId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        return [updated, ...filtered].slice(0, SESSION_SUMMARY_LIMIT);
+      });
       return info;
     };
 
@@ -383,10 +484,17 @@ export function WorkChat() {
           if (isMountedRef.current) {
             setMessages([]);
             setHasMoreHistory(false);
+            setActiveSessionId(null);
           }
+          sessionRef.current = null;
+          historyCursorRef.current = null;
           return;
         }
 
+        historyCursorRef.current = null;
+        if (isMountedRef.current) {
+          setHasMoreHistory(false);
+        }
         await loadHistoryBatch({ initial: true });
       } catch (historyLoadError) {
         if (active && isMountedRef.current) {
@@ -480,6 +588,17 @@ export function WorkChat() {
           },
           { merge: true },
         );
+        setSessionSummaries((prev) => {
+          const now = new Date();
+          const existing = prev.find((summary) => summary.id === session.sessionId);
+          const filtered = prev.filter((summary) => summary.id !== session.sessionId);
+          const updated: SessionSummary = {
+            id: session.sessionId,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now,
+          };
+          return [updated, ...filtered].slice(0, SESSION_SUMMARY_LIMIT);
+        });
       } catch (firebaseError) {
         console.error('Failed to persist work chat message', firebaseError);
       }
@@ -571,6 +690,86 @@ export function WorkChat() {
     void sendMessage(choice);
   };
 
+  const handleSessionSelect = useCallback(
+    async (sessionId: string) => {
+      if (!sessionId || sessionId === activeSessionId || historyLoadingRef.current) {
+        return;
+      }
+
+      try {
+        const auth = authRef.current ?? getFirebaseAuth();
+        authRef.current = auth;
+        const user = auth.currentUser;
+        if (!user) {
+          setError('ログイン情報が取得できませんでした。再度ログインしなおしてください。');
+          return;
+        }
+
+        const info: SessionInfo = { userId: user.uid, sessionId };
+        sessionRef.current = info;
+        setActiveSessionId(sessionId);
+        historyCursorRef.current = null;
+        setHasMoreHistory(false);
+        setMessages([]);
+        setHistoryError(null);
+        setHistoryInitialized(false);
+        historyLoadingRef.current = true;
+        if (isMountedRef.current) {
+          setHistoryLoading(true);
+        }
+
+        try {
+          await loadHistoryBatch({ initial: true });
+        } catch (switchError) {
+          if (isMountedRef.current) {
+            console.error('Failed to switch work chat session', switchError);
+            setHistoryError('チャット履歴の読み込みに失敗しました。');
+          }
+        } finally {
+          historyLoadingRef.current = false;
+          if (isMountedRef.current) {
+            setHistoryLoading(false);
+            setHistoryInitialized(true);
+          }
+        }
+      } catch (switchError) {
+        console.error('Failed to select work chat session', switchError);
+        if (isMountedRef.current) {
+          setError('チャットの読み込み中にエラーが発生しました。再度お試しください。');
+        }
+      }
+    },
+    [activeSessionId, loadHistoryBatch],
+  );
+
+  const handleNewChat = useCallback(async () => {
+    if (sessionsLoading) {
+      return;
+    }
+
+    try {
+      sessionRef.current = null;
+      sessionPromiseRef.current = null;
+      const info = await ensureSession();
+      setMessages([]);
+      setHasMoreHistory(false);
+      setHistoryError(null);
+      setHistoryInitialized(true);
+      historyCursorRef.current = null;
+      historyLoadingRef.current = false;
+      setHistoryLoading(false);
+      setError(null);
+      setActiveSessionId(info.sessionId);
+      autoScrollRef.current = true;
+      void refreshSessionSummaries().catch((refreshError) => {
+        console.error('Failed to refresh work chat sessions after creating new session', refreshError);
+      });
+    } catch (createError) {
+      console.error('Failed to start new work chat session', createError);
+      setError('新しいチャットを開始できませんでした。時間をおいて再度お試しください。');
+    }
+  }, [ensureSession, refreshSessionSummaries, sessionsLoading]);
+
   return (
     <section className="card flex w-full flex-1 flex-col gap-5 p-4 pb-6 sm:p-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -591,6 +790,72 @@ export function WorkChat() {
         </Link>
       </header>
       <div className="flex flex-1 flex-col gap-6">
+        <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              className="btn inline-flex items-center justify-center whitespace-nowrap text-xs sm:text-sm"
+              onClick={() => {
+                void handleNewChat();
+              }}
+              disabled={controlsDisabled}
+            >
+              新しくチャットを始める
+            </button>
+            <div className="flex flex-col gap-2 sm:items-end">
+              <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">過去のチャット</div>
+              {sessionsLoading ? (
+                <div className="text-xs text-gray-400">チャット履歴を読み込み中…</div>
+              ) : sessionSummaries.length === 0 ? (
+                <div className="text-xs text-gray-400">過去のチャットはまだありません。</div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    {recentSessions.map((summary, index) => {
+                      const isActive = summary.id === activeSessionId;
+                      return (
+                        <button
+                          key={summary.id}
+                          type="button"
+                          className={clsx(
+                            'rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm',
+                            isActive ? 'border-blue-300/70 bg-blue-500/20 text-white' : '',
+                          )}
+                          onClick={() => {
+                            void handleSessionSelect(summary.id);
+                          }}
+                          disabled={controlsDisabled}
+                        >
+                          {formatSessionLabel(summary, index)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {olderSessions.length > 0 ? (
+                    <select
+                      value={olderSelectValue}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (value) {
+                          void handleSessionSelect(value);
+                        }
+                      }}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-blue-100 outline-none transition hover:border-blue-300/60 focus:border-blue-300/60 sm:w-60 sm:text-sm"
+                      disabled={controlsDisabled}
+                    >
+                      <option value="">その他のチャットを選択</option>
+                      {olderSessions.map((summary, index) => (
+                        <option key={summary.id} value={summary.id}>
+                          {formatSessionLabel(summary, index + RECENT_SESSION_BUTTON_COUNT)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">現在のステージ</div>
