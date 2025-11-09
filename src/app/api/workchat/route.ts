@@ -15,11 +15,17 @@ const payloadSchema = z.object({
 
 const defaultModelId = 'gemini-2.0-flash';
 
-const toGeminiHistory = (messages: { role: 'user' | 'assistant'; content: string }[]) =>
-  messages.map((message) => ({
+const toGeminiHistory = (messages: { role: 'user' | 'assistant'; content: string }[]) => {
+  const trimmedHistory = [...messages];
+  while (trimmedHistory.length > 0 && trimmedHistory[0].role !== 'user') {
+    trimmedHistory.shift();
+  }
+
+  return trimmedHistory.map((message) => ({
     role: message.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: message.content }],
   }));
+};
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
