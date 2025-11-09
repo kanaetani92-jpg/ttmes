@@ -39,6 +39,19 @@ type ChatMessage = {
   createdAt: Date | null;
 };
 
+type ExampleEvaluationState =
+  | { status: 'loading' }
+  | {
+      status: 'success';
+      userFriendly: boolean;
+      userFriendlyReason: string;
+      ttmAligned: boolean;
+      ttmReason: string;
+      stressManagementRelated: boolean;
+      stressManagementReason: string;
+    }
+  | { status: 'error'; message: string };
+
 type SessionSummary = {
   id: string;
   createdAt: Date | null;
@@ -159,6 +172,7 @@ export function WorkChat() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isMobileInputMode, setIsMobileInputMode] = useState(false);
+  const [exampleEvaluations, setExampleEvaluations] = useState<Record<string, ExampleEvaluationState>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const authRef = useRef<Auth | null>(null);
   const dbRef = useRef<Firestore | null>(null);
@@ -168,6 +182,23 @@ export function WorkChat() {
   const historyLoadingRef = useRef(false);
   const autoScrollRef = useRef(true);
   const isMountedRef = useRef(true);
+
+  const examplePrompts = useMemo(() => {
+    const prompts = new Set<string>();
+    for (const message of messages) {
+      if (message.role !== 'assistant') {
+        continue;
+      }
+      const choices = extractExampleChoices(message.content);
+      for (const choice of choices) {
+        const prompt = buildExampleChoicePrompt(choice);
+        if (prompt) {
+          prompts.add(prompt);
+        }
+      }
+    }
+    return Array.from(prompts);
+  }, [messages]);
 
   useEffect(() => {
     return () => {
@@ -208,6 +239,89 @@ export function WorkChat() {
     mediaQuery.addListener(updateMode);
     return () => mediaQuery.removeListener(updateMode);
   }, []);
+
+  useEffect(() => {
+    if (examplePrompts.length === 0) {
+      return;
+    }
+
+    let aborted = false;
+
+    const evaluatePrompt = async (prompt: string) => {
+      setExampleEvaluations((prev) => ({
+        ...prev,
+        [prompt]: { status: 'loading' },
+      }));
+
+      try {
+        const res = await fetch('/api/workchat/evaluate-example', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+
+        if (!res.ok) {
+          let message = 'Gemini評価の呼び出しに失敗しました。';
+          try {
+            const json = (await res.json()) as { error?: string };
+            if (json?.error) {
+              message = json.error;
+            }
+          } catch (_error) {
+            // ignore JSON parse errors and use default message
+          }
+          throw new Error(message);
+        }
+
+        const json = (await res.json()) as {
+          userFriendly: { value: boolean; reason: string };
+          ttmAligned: { value: boolean; reason: string };
+          stressManagementRelated: { value: boolean; reason: string };
+        };
+
+        if (aborted || !isMountedRef.current) {
+          return;
+        }
+
+        setExampleEvaluations((prev) => ({
+          ...prev,
+          [prompt]: {
+            status: 'success',
+            userFriendly: json.userFriendly.value,
+            userFriendlyReason: json.userFriendly.reason,
+            ttmAligned: json.ttmAligned.value,
+            ttmReason: json.ttmAligned.reason,
+            stressManagementRelated: json.stressManagementRelated.value,
+            stressManagementReason: json.stressManagementRelated.reason,
+          },
+        }));
+      } catch (error: any) {
+        if (aborted || !isMountedRef.current) {
+          return;
+        }
+        setExampleEvaluations((prev) => ({
+          ...prev,
+          [prompt]: {
+            status: 'error',
+            message: error?.message ?? 'Gemini評価の呼び出しに失敗しました。',
+          },
+        }));
+      }
+    };
+
+    const pendingPrompts = examplePrompts.filter((prompt) => !exampleEvaluations[prompt]);
+    if (pendingPrompts.length === 0) {
+      return;
+    }
+
+    pendingPrompts.forEach((prompt) => {
+      void evaluatePrompt(prompt);
+    });
+
+    return () => {
+      aborted = true;
+    };
+  }, [examplePrompts, exampleEvaluations]);
 
   const refreshSessionSummaries = useCallback(async (): Promise<{ summaries: SessionSummary[]; userId: string | null }> => {
     if (isMountedRef.current) {
@@ -943,16 +1057,45 @@ export function WorkChat() {
                                   if (!prompt) {
                                     return null;
                                   }
+                                  const evaluation = exampleEvaluations[prompt];
+                                  const isEvaluated = evaluation?.status === 'success';
+                                  const isButtonDisabled = loading || !isEvaluated;
                                   return (
-                                    <button
-                                      key={choice}
-                                      type="button"
-                                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
-                                      onClick={() => handleChoiceSelect(prompt)}
-                                      disabled={loading}
-                                    >
-                                      {prompt}
-                                    </button>
+                                    <div key={choice} className="flex flex-col gap-1">
+                                      <button
+                                        type="button"
+                                        className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+                                        onClick={() => handleChoiceSelect(prompt)}
+                                        disabled={isButtonDisabled}
+                                      >
+                                        {prompt}
+                                      </button>
+                                      {evaluation ? (
+                                        evaluation.status === 'loading' ? (
+                                          <span className="pl-1 text-[11px] text-blue-100/80 sm:text-xs">
+                                            Geminiで内容を確認しています…
+                                          </span>
+                                        ) : evaluation.status === 'error' ? (
+                                          <span className="pl-1 text-[11px] text-red-300 sm:text-xs">
+                                            {evaluation.message}
+                                          </span>
+                                        ) : (
+                                          <div className="flex flex-col gap-0.5 pl-1 text-[11px] text-blue-100/80 sm:text-xs">
+                                            <span>
+                                              ユーザーフレンドリー: {evaluation.userFriendly ? 'はい' : 'いいえ'}（{evaluation.userFriendlyReason}）
+                                            </span>
+                                            <span>
+                                              多理論統合モデルに基づく: {evaluation.ttmAligned ? 'はい' : 'いいえ'}（{evaluation.ttmReason}）
+                                            </span>
+                                            <span>
+                                              ストレスマネジメント関連: {evaluation.stressManagementRelated ? 'はい' : 'いいえ'}（{evaluation.stressManagementReason}）
+                                            </span>
+                                          </div>
+                                        )
+                                      ) : (
+                                        <span className="pl-1 text-[11px] text-blue-100/80 sm:text-xs">Geminiの評価を待機中です…</span>
+                                      )}
+                                    </div>
                                   );
                                 })}
                               </div>
