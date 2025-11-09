@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FormEvent,
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
 import type { Auth } from 'firebase/auth';
 import {
@@ -66,6 +74,7 @@ export function WorkChat() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [isMobileInputMode, setIsMobileInputMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const authRef = useRef<Auth | null>(null);
   const dbRef = useRef<Firestore | null>(null);
@@ -99,6 +108,21 @@ export function WorkChat() {
       console.error('Failed to initialize Firebase for work chat', firebaseError);
       setError((prev) => prev ?? 'Firebaseの初期化に失敗しました。ページを再読み込みしてください。');
     }
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMode = () => setIsMobileInputMode(mediaQuery.matches);
+
+    updateMode();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateMode);
+      return () => mediaQuery.removeEventListener('change', updateMode);
+    }
+
+    mediaQuery.addListener(updateMode);
+    return () => mediaQuery.removeListener(updateMode);
   }, []);
 
   const fetchExistingSession = useCallback(async (): Promise<SessionInfo | null> => {
@@ -483,6 +507,10 @@ export function WorkChat() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isMobileInputMode) {
+      return;
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (canSend) {
@@ -497,16 +525,25 @@ export function WorkChat() {
   };
 
   return (
-    <section className="card flex h-[min(90vh,800px)] flex-col space-y-4 p-6 pb-8">
-      <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-white">ワーク（試験運用）</h2>
+    <section className="card flex w-full flex-1 flex-col gap-5 p-4 pb-6 sm:p-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative inline-flex">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/40 via-blue-400/20 to-transparent blur-sm"
+          />
+          <h2 className="relative inline-flex items-center rounded-2xl bg-blue-500/10 px-4 py-2 text-base font-semibold text-white shadow-inner sm:text-xl">
+            ワーク（試験運用）
+          </h2>
         </div>
-        <Link href="/" className="btn-secondary whitespace-nowrap text-xs sm:text-sm">
+        <Link
+          href="/"
+          className="btn-secondary inline-flex items-center justify-center whitespace-nowrap text-xs sm:self-auto sm:text-sm"
+        >
           トップに戻る
         </Link>
       </header>
-      <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-4 shadow-inner">
+      <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">
@@ -526,7 +563,7 @@ export function WorkChat() {
             <button
               key={choice}
               type="button"
-              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60"
+              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
               onClick={() => handleChoiceSelect(choice)}
               disabled={loading}
             >
@@ -537,7 +574,7 @@ export function WorkChat() {
       </div>
       <div
         ref={scrollRef}
-        className="flex-1 min-h-[360px] overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-4 shadow-inner"
+        className="min-h-[280px] flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-3 shadow-inner sm:min-h-[360px] sm:p-4"
       >
         <div className="flex min-h-full flex-col justify-end">
           <div className="flex flex-col gap-3">
@@ -581,16 +618,16 @@ export function WorkChat() {
           </div>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-3 pb-4">
+      <form onSubmit={handleSubmit} className="space-y-3 pb-2 sm:pb-4">
         {error ? <p className="text-xs text-red-300">{error}</p> : null}
-        <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20">
+        <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20 sm:p-4">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={MAX_MESSAGE_LENGTH}
             rows={4}
-            className="min-h-[96px] flex-1 resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
+            className="min-h-[120px] flex-1 resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500 sm:min-h-[96px]"
             placeholder="メッセージを入力"
           />
           <button type="submit" className="btn whitespace-nowrap" disabled={!canSend}>
@@ -599,7 +636,9 @@ export function WorkChat() {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
           <span>残り文字数: {Math.max(0, remaining)}</span>
-          <span>Shift+Enterで改行 / Enterで送信</span>
+          <span>
+            {isMobileInputMode ? '送信ボタンで送信 / Enterで改行' : 'Shift+Enterで改行 / Enterで送信'}
+          </span>
         </div>
       </form>
     </section>

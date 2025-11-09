@@ -9,10 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja">
-      <body>
+      <body className="min-h-screen">
         <div className="container flex min-h-screen flex-col">
           <h1 className="mb-4 text-2xl font-bold">TTM エキスパートシステム</h1>
-          <main className="flex-1 pb-8">{children}</main>
+          <main className="flex flex-1 flex-col pb-8">{children}</main>
           <footer className="mt-auto pt-6 text-sm text-gray-400">© {new Date().getFullYear()} TTM</footer>
         </div>
       </body>
