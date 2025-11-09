@@ -52,15 +52,6 @@ const HISTORY_PAGE_SIZE = 5;
 const SESSION_SUMMARY_LIMIT = 20;
 const RECENT_SESSION_BUTTON_COUNT = 3;
 
-const normalizeExampleText = (value: string): string => {
-  return value.replace(/[。．｡！？!？\s]+$/gu, '').trim();
-};
-
-const buildStageChoicePrompt = (choice: string): string => {
-  const normalized = normalizeExampleText(choice);
-  return normalized ? `「${normalized}」に取り組みたいです。` : '';
-};
-
 const toDate = (value: any): Date | null => {
   if (!value) return null;
   if (typeof value.toDate === 'function') {
@@ -647,11 +638,6 @@ export function WorkChat() {
     }
   };
 
-  const handleChoiceSelect = (choice: string) => {
-    if (loading) return;
-    void sendMessage(choice);
-  };
-
   const handleSessionSelect = useCallback(
     async (sessionId: string) => {
       if (!sessionId || sessionId === activeSessionId || historyLoadingRef.current) {
@@ -829,27 +815,14 @@ export function WorkChat() {
             {stageMetadata.description}
           </p>
           <div className="flex flex-col gap-2 pt-1">
-            {stageMetadata.choices.map((choice) => {
-              const normalizedChoice = normalizeExampleText(choice);
-              if (!normalizedChoice) {
-                return null;
-              }
-              const prompt = buildStageChoicePrompt(choice);
-              if (!prompt) {
-                return null;
-              }
-              return (
-                <button
-                  key={choice}
-                  type="button"
-                  className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
-                  onClick={() => handleChoiceSelect(prompt)}
-                  disabled={loading}
-                >
-                  {normalizedChoice}
-                </button>
-              );
-            })}
+            {stageMetadata.choices.map((choice) => (
+              <div
+                key={choice}
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 sm:text-sm"
+              >
+                {choice}
+              </div>
+            ))}
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-4">
