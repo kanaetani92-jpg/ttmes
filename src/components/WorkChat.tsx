@@ -597,8 +597,8 @@ export function WorkChat() {
           トップに戻る
         </Link>
       </header>
-      <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:items-stretch">
-        <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4 lg:max-w-sm lg:flex-shrink-0 lg:overflow-y-auto lg:pr-3">
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">現在のステージ</div>
             <div className="text-lg font-semibold text-white">{stageMetadata.stageName}</div>
@@ -620,10 +620,11 @@ export function WorkChat() {
             ))}
           </div>
         </div>
-        <div className="flex min-h-[280px] flex-1 flex-col gap-4 sm:min-h-[360px]">
+        <div className="flex flex-1 flex-col gap-4">
           <div
             ref={scrollRef}
             className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-3 pr-4 shadow-inner sm:p-4"
+            style={{ maxHeight: '30rem', minHeight: '20rem' }}
           >
             <div className="flex min-h-full flex-col justify-end">
               <div className="flex flex-col gap-3">

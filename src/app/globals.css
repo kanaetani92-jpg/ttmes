@@ -11,7 +11,11 @@
 }
 
 html, body, #__next { height: 100%; }
-body { background: var(--bg); color: var(--ink); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Meiryo', 'Meiryo UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+}
 .container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .card { background: var(--card); border-radius: 1rem; box-shadow: var(--shadow, 0 8px 30px rgba(0,0,0,0.12)); }
 .input { background: #0e1330; border: 1px solid #2a315a; border-radius: .75rem; padding: .75rem 1rem; width: 100%; color: var(--ink); }
