@@ -55,7 +55,7 @@ const RECENT_SESSION_BUTTON_COUNT = 3;
 const BULLET_PATTERN = /^(?:[・\-‐*●○▲▼]|[0-9０-９]+[.)）]|[a-zA-Z]+[.)）])\s*(.+)$/;
 
 const normalizeExampleText = (value: string): string => {
-  return value.replace(/[。．｡\s]+$/gu, '').trim();
+  return value.replace(/[。．｡！？!？\s]+$/gu, '').trim();
 };
 
 const extractExampleChoices = (content: string): string[] => {
@@ -75,7 +75,7 @@ const extractExampleChoices = (content: string): string[] => {
         .split(/[、,]/u)
         .map((part) => normalizeExampleText(part))
         .filter((part) => part.length > 0);
-      if (inlineCandidates.length >= 2) {
+      if (inlineCandidates.length >= 1) {
         inlineCandidates.forEach((candidate) => seen.add(candidate));
       }
     }
@@ -820,7 +820,7 @@ export function WorkChat() {
                 <div className="text-xs text-gray-400">過去のチャットはまだありません。</div>
               ) : (
                 <>
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <div className="flex flex-col gap-2 sm:items-end">
                     {recentSessions.map((summary, index) => {
                       const isActive = summary.id === activeSessionId;
                       return (
@@ -828,7 +828,7 @@ export function WorkChat() {
                           key={summary.id}
                           type="button"
                           className={clsx(
-                            'rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm',
+                            'w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-white transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:w-60 sm:text-sm',
                             isActive ? 'border-blue-300/70 bg-blue-500/20 text-white' : '',
                           )}
                           onClick={() => {
@@ -850,12 +850,14 @@ export function WorkChat() {
                           void handleSessionSelect(value);
                         }
                       }}
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-blue-100 outline-none transition hover:border-blue-300/60 focus:border-blue-300/60 sm:w-60 sm:text-sm"
+                      className="w-full rounded-2xl border border-white/10 bg-[#1c2750] px-3 py-2 text-xs font-semibold text-white outline-none transition hover:border-blue-300/60 focus:border-blue-300/60 focus:bg-[#25366f] focus:text-white sm:w-60 sm:text-sm"
                       disabled={controlsDisabled}
                     >
-                      <option value="">その他のチャットを選択</option>
+                      <option value="" className="bg-[#101b3a] text-white">
+                        過去のチャットを選択
+                      </option>
                       {olderSessions.map((summary, index) => (
-                        <option key={summary.id} value={summary.id}>
+                        <option key={summary.id} value={summary.id} className="bg-[#101b3a] text-white">
                           {formatSessionLabel(summary, index + RECENT_SESSION_BUTTON_COUNT)}
                         </option>
                       ))}
