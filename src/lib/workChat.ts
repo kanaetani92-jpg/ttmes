@@ -10,7 +10,7 @@ type StageDetail = {
   choices: string[];
 };
 
-const CALL_TO_ACTION = '以下は取り組みの例です。参考になりそうなものを眺めてみましょう。';
+const CALL_TO_ACTION = ' まずは、以下の選択肢から取り組んでみたいことを選んでみましょう。';
 
 const stageDetails: Record<Stage, StageDetail> = {
   PC: {
