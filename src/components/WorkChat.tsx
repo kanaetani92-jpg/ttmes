@@ -42,7 +42,61 @@ type ChatMessage = {
 const createMessageId = () => crypto.randomUUID();
 const MAX_MESSAGE_LENGTH = 5000;
 const INITIAL_HISTORY_LIMIT = 5;
-const HISTORY_PAGE_SIZE = 20;
+const HISTORY_PAGE_SIZE = 5;
+
+const BULLET_PATTERN = /^(?:[・\-‐*●○▲▼]|[0-9０-９]+[.)）]|[a-zA-Z]+[.)）])\s*(.+)$/;
+
+const normalizeExampleText = (value: string): string => {
+  return value.replace(/[。．｡\s]+$/gu, '').trim();
+};
+
+const extractExampleChoices = (content: string): string[] => {
+  const index = content.indexOf('例えば');
+  if (index === -1) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const lines = content.slice(index).split(/\r?\n/);
+
+  if (lines.length > 0) {
+    const firstLine = lines[0];
+    const inlineSegment = firstLine.slice(firstLine.indexOf('例えば') + '例えば'.length);
+    if (inlineSegment.trim().length > 0) {
+      const inlineCandidates = inlineSegment
+        .replace(/^[、,。．｡\s]+/gu, '')
+        .split(/[、,]/u)
+        .map((part) => normalizeExampleText(part))
+        .filter((part) => part.length > 0);
+      if (inlineCandidates.length >= 2) {
+        inlineCandidates.forEach((candidate) => seen.add(candidate));
+      }
+    }
+  }
+
+  for (let i = 1; i < lines.length; i += 1) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) {
+      if (seen.size > 0) {
+        continue;
+      }
+      continue;
+    }
+    const match = trimmed.match(BULLET_PATTERN);
+    if (match) {
+      const choice = normalizeExampleText(match[1]);
+      if (choice) {
+        seen.add(choice);
+      }
+      continue;
+    }
+    if (seen.size > 0) {
+      break;
+    }
+  }
+
+  return Array.from(seen);
+};
 
 const toDate = (value: any): Date | null => {
   if (!value) return null;
@@ -543,104 +597,117 @@ export function WorkChat() {
           トップに戻る
         </Link>
       </header>
-      <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:items-stretch">
+        <div className="space-y-3 rounded-3xl border border-white/10 bg-[#0f1632]/90 p-3 shadow-inner sm:p-4 lg:max-w-sm lg:flex-shrink-0 lg:overflow-y-auto lg:pr-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">
-              現在のステージ
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-200/70">現在のステージ</div>
             <div className="text-lg font-semibold text-white">{stageMetadata.stageName}</div>
           </div>
-          <Link href="/assess/stage" className="btn-secondary whitespace-nowrap text-xs sm:text-sm">
-            ステージを変更
-          </Link>
-        </div>
-        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-200">
-          {stageMetadata.description}
-        </p>
-        <div className="flex flex-col gap-2 pt-1">
-          {stageMetadata.choices.map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
-              onClick={() => handleChoiceSelect(choice)}
-              disabled={loading}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div
-        ref={scrollRef}
-        className="min-h-[280px] flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-3 shadow-inner sm:min-h-[360px] sm:p-4"
-      >
-        <div className="flex min-h-full flex-col justify-end">
-          <div className="flex flex-col gap-3">
-            {!historyInitialized && historyLoading ? (
-              <div className="text-center text-xs text-gray-400">チャット履歴を読み込み中…</div>
-            ) : (
-              <>
-                {historyLoading && historyInitialized && hasMoreHistory ? (
-                  <div className="text-center text-[11px] text-gray-400">過去のメッセージを読み込み中…</div>
-                ) : null}
-                {historyError ? (
-                  <p className="text-center text-xs text-red-300">{historyError}</p>
-                ) : null}
-                {messages.length === 0 ? (
-                  <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center shadow-inner">
-                    <p className="text-sm leading-relaxed text-gray-300">
-                      まだメッセージがありません。最初のメッセージを送ってみましょう。
-                    </p>
-                  </div>
-                ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={clsx('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
-                    >
-                      <div
-                        className={clsx(
-                          'max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20',
-                          message.role === 'user'
-                            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                            : 'bg-[#151b39]/90 text-gray-100 backdrop-blur',
-                        )}
-                      >
-                        {message.content}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </>
-            )}
+          <p className="whitespace-pre-line text-sm leading-relaxed text-gray-200">
+            {stageMetadata.description}
+          </p>
+          <div className="flex flex-col gap-2 pt-1">
+            {stageMetadata.choices.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
+                onClick={() => handleChoiceSelect(choice)}
+                disabled={loading}
+              >
+                {choice}
+              </button>
+            ))}
           </div>
         </div>
+        <div className="flex min-h-[280px] flex-1 flex-col gap-4 sm:min-h-[360px]">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1026]/90 p-3 pr-4 shadow-inner sm:p-4"
+          >
+            <div className="flex min-h-full flex-col justify-end">
+              <div className="flex flex-col gap-3">
+                {!historyInitialized && historyLoading ? (
+                  <div className="text-center text-xs text-gray-400">チャット履歴を読み込み中…</div>
+                ) : (
+                  <>
+                    {historyLoading && historyInitialized && hasMoreHistory ? (
+                      <div className="text-center text-[11px] text-gray-400">過去のメッセージを読み込み中…</div>
+                    ) : null}
+                    {historyError ? (
+                      <p className="text-center text-xs text-red-300">{historyError}</p>
+                    ) : null}
+                    {messages.length === 0 ? (
+                      <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center shadow-inner">
+                        <p className="text-sm leading-relaxed text-gray-300">
+                          まだメッセージがありません。最初のメッセージを送ってみましょう。
+                        </p>
+                      </div>
+                    ) : (
+                      messages.map((message) => {
+                        const isAssistant = message.role === 'assistant';
+                        const exampleChoices = isAssistant ? extractExampleChoices(message.content) : [];
+                        return (
+                          <div key={message.id} className={clsx('flex flex-col gap-2', isAssistant ? 'items-start' : 'items-end')}>
+                            <div
+                              className={clsx(
+                                'max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20',
+                                isAssistant
+                                  ? 'bg-[#151b39]/90 text-gray-100 backdrop-blur'
+                                  : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white',
+                              )}
+                            >
+                              {message.content}
+                            </div>
+                            {isAssistant && exampleChoices.length > 0 ? (
+                              <div className="flex max-w-[85%] flex-col gap-2">
+                                {exampleChoices.map((choice) => (
+                                  <button
+                                    key={choice}
+                                    type="button"
+                                    className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-semibold text-blue-100 transition hover:border-blue-300/60 hover:bg-blue-500/10 disabled:opacity-60 sm:text-sm"
+                                    onClick={() => handleChoiceSelect(choice)}
+                                    disabled={loading}
+                                  >
+                                    {choice}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-3 pb-2 sm:pb-4">
+            {error ? <p className="text-xs text-red-300">{error}</p> : null}
+            <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20 sm:p-4">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
+                maxLength={MAX_MESSAGE_LENGTH}
+                rows={4}
+                className="min-h-[120px] flex-1 resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500 sm:min-h-[96px]"
+                placeholder="メッセージを入力"
+              />
+              <button type="submit" className="btn whitespace-nowrap" disabled={!canSend}>
+                {loading ? '送信中…' : '送信'}
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+              <span>残り文字数: {Math.max(0, remaining)}</span>
+              <span>
+                {isMobileInputMode ? '送信ボタンで送信 / Enterで改行' : 'Shift+Enterで改行 / Enterで送信'}
+              </span>
+            </div>
+          </form>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-3 pb-2 sm:pb-4">
-        {error ? <p className="text-xs text-red-300">{error}</p> : null}
-        <div className="flex items-end gap-3 rounded-3xl border border-white/10 bg-[#101836]/90 p-3 shadow-lg shadow-black/20 sm:p-4">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={handleKeyDown}
-            maxLength={MAX_MESSAGE_LENGTH}
-            rows={4}
-            className="min-h-[120px] flex-1 resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-gray-500 sm:min-h-[96px]"
-            placeholder="メッセージを入力"
-          />
-          <button type="submit" className="btn whitespace-nowrap" disabled={!canSend}>
-            {loading ? '送信中…' : '送信'}
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
-          <span>残り文字数: {Math.max(0, remaining)}</span>
-          <span>
-            {isMobileInputMode ? '送信ボタンで送信 / Enterで改行' : 'Shift+Enterで改行 / Enterで送信'}
-          </span>
-        </div>
-      </form>
     </section>
   );
 }
